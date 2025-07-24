@@ -134,10 +134,11 @@ Required Angular Material modules:
 - `MatFormFieldModule`
 - `MatInputModule`
 - `MatDialogModule`
-- `MatSnackBarModule`
 - `MatMenuModule`
 - `MatProgressBarModule`
 - `FormsModule` (for dialog inputs)
+
+Note: The component uses custom toast notifications instead of MatSnackBar to avoid dependency injection complexities in standalone components.
 
 ## Installation
 

@@ -166,9 +166,28 @@
   pointer-events: none;
 }
 
-/* Success/Error message styles */
-.mat-snack-bar-container {
+/* Custom toast notification styles */
+.custom-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #323232;
   color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 10000;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  max-width: 300px;
+  transition: all 0.3s ease;
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.custom-toast.show {
+  transform: translateX(0);
+  opacity: 1;
 }
 
 /* Menu styling */

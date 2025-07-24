@@ -7,9 +7,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snackbar';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+
 import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 import {BehaviorSubject, merge, Observable} from 'rxjs';
@@ -473,14 +472,13 @@ export class NodeDialogComponent {
   styleUrls: ['./tree.css'],
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
-    MatButtonModule, MatMenuModule, MatSnackBarModule
+    MatButtonModule, MatMenuModule, MatDialogModule
   ]
 })
 export class Tree { // Renamed from TreeDynamicExample to Tree as per your import
   constructor(
     private database: DynamicDatabase,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private dialog: MatDialog
   ) {
     this.treeControl = new FlatTreeControl<DynamicFlatNode>(this.getLevel, this.isExpandable);
     this.dataSource = new DynamicDataSource(this.treeControl, database);
@@ -564,8 +562,44 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
   }
 
   private showMessage(message: string) {
-    this.snackBar.open(message, 'Close', {
-      duration: 3000,
-    });
+    console.log('Tree Operation:', message);
+    
+    // Create a simple toast notification without MatSnackBar
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #323232;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 10000;
+      font-family: Roboto, sans-serif;
+      font-size: 14px;
+      max-width: 300px;
+      transition: all 0.3s ease;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.style.transform = 'translateX(0)';
+      toast.style.opacity = '1';
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 3000);
   }
 }
