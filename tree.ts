@@ -444,25 +444,87 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   // CRUD operations that maintain filter state
   createNode(parentItem: string | null, newNodeName: string): boolean {
+    // Store expanded state before operation
+    const expandedNodeItems = new Set<string>();
+    if (this._treeControl.dataNodes) {
+      this._treeControl.dataNodes.forEach(node => {
+        if (this._treeControl.isExpanded(node)) {
+          expandedNodeItems.add(node.item);
+        }
+      });
+    }
+
     const success = this._database.createNode(parentItem, newNodeName);
     if (success) {
       this.refreshData();
+      // Restore expansion state after refresh
+      setTimeout(() => {
+        this._treeControl.dataNodes.forEach(node => {
+          if (expandedNodeItems.has(node.item) && node.expandable) {
+            this._treeControl.expand(node);
+          }
+        });
+        // Auto-expand parent if child was added to a leaf node
+        if (parentItem && !expandedNodeItems.has(parentItem)) {
+          const parentNode = this._treeControl.dataNodes.find(n => n.item === parentItem);
+          if (parentNode && parentNode.expandable) {
+            this._treeControl.expand(parentNode);
+          }
+        }
+      }, 0);
     }
     return success;
   }
 
   updateNode(oldName: string, newName: string): boolean {
+    // Store expanded state before operation
+    const expandedNodeItems = new Set<string>();
+    if (this._treeControl.dataNodes) {
+      this._treeControl.dataNodes.forEach(node => {
+        if (this._treeControl.isExpanded(node)) {
+          // Update the expanded item name if it's the one being renamed
+          expandedNodeItems.add(node.item === oldName ? newName : node.item);
+        }
+      });
+    }
+
     const success = this._database.updateNode(oldName, newName);
     if (success) {
       this.refreshData();
+      // Restore expansion state after refresh
+      setTimeout(() => {
+        this._treeControl.dataNodes.forEach(node => {
+          if (expandedNodeItems.has(node.item) && node.expandable) {
+            this._treeControl.expand(node);
+          }
+        });
+      }, 0);
     }
     return success;
   }
 
   deleteNode(nodeName: string): boolean {
+    // Store expanded state before operation (excluding the deleted node)
+    const expandedNodeItems = new Set<string>();
+    if (this._treeControl.dataNodes) {
+      this._treeControl.dataNodes.forEach(node => {
+        if (this._treeControl.isExpanded(node) && node.item !== nodeName) {
+          expandedNodeItems.add(node.item);
+        }
+      });
+    }
+
     const success = this._database.deleteNode(nodeName);
     if (success) {
       this.refreshData();
+      // Restore expansion state after refresh
+      setTimeout(() => {
+        this._treeControl.dataNodes.forEach(node => {
+          if (expandedNodeItems.has(node.item) && node.expandable) {
+            this._treeControl.expand(node);
+          }
+        });
+      }, 0);
     }
     return success;
   }
@@ -556,24 +618,9 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
   addChildNode(parentNode: DynamicFlatNode) {
     this.openNodeDialog('Add Child Node', 'Node Name', '', 'Add', (result: string) => {
       if (result) {
-        // Store whether parent was expanded and was a leaf node before the operation
-        const wasParentExpanded = this.treeControl.isExpanded(parentNode);
-        const wasLeafNode = !this.database.isExpandable(parentNode.item);
-        
         const success = this.dataSource.createNode(parentNode.item, result);
         if (success) {
           this.showMessage(`Child node "${result}" added to "${parentNode.item}" successfully!`);
-          
-          // Determine if we should expand the parent
-          setTimeout(() => {
-            const updatedParentNode = this.dataSource.data.find(node => node.item === parentNode.item);
-            if (updatedParentNode && updatedParentNode.expandable) {
-              // Expand if parent was previously expanded OR if it just became expandable (for better UX)
-              if (wasParentExpanded || wasLeafNode) {
-                this.treeControl.expand(updatedParentNode);
-              }
-            }
-          }, 50); // Small delay to ensure data is refreshed
         } else {
           this.showMessage(`Failed to add child node. Node "${result}" may already exist.`);
         }
@@ -596,29 +643,9 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
 
   deleteNode(node: DynamicFlatNode) {
     if (confirm(`Are you sure you want to delete "${node.item}" and all its children?`)) {
-      // Find the parent of the node being deleted
-      const parentName = this.database.getParent(node.item);
-      
       const success = this.dataSource.deleteNode(node.item);
       if (success) {
         this.showMessage(`Node "${node.item}" deleted successfully!`);
-        
-        // If the deleted node had a parent, check if parent should collapse
-        if (parentName) {
-          // Use setTimeout to ensure the data refresh has completed
-          setTimeout(() => {
-            // Check if parent still has children after deletion and refresh
-            const parentChildren = this.database.getChildren(parentName);
-            if (!parentChildren || parentChildren.length === 0) {
-              // Parent has no children left, find it in current data and collapse it
-              // This is correct behavior - empty parents should collapse
-              const parentNode = this.dataSource.data.find(n => n.item === parentName);
-              if (parentNode && this.treeControl.isExpanded(parentNode)) {
-                this.treeControl.collapse(parentNode);
-              }
-            }
-          }, 100); // Delay to ensure refresh is complete
-        }
       } else {
         this.showMessage(`Failed to delete node "${node.item}".`);
       }
