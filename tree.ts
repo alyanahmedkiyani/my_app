@@ -733,49 +733,88 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
   // Drag and Drop functionality
   onDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
     const draggedNode = event.item.data as DynamicFlatNode;
-    const targetContainer = event.container.data;
     
+    // This handles reordering within the main tree container
     if (event.previousContainer === event.container) {
-      // Reordering within the same level
-      const targetNode = targetContainer[event.currentIndex];
-      const draggedParent = this.database.getParent(draggedNode.item);
+      // Get the target position information
+      const draggedIndex = event.previousIndex;
+      const targetIndex = event.currentIndex;
+      
+      if (draggedIndex === targetIndex) {
+        return; // No change needed
+      }
+      
+      // Find what nodes are at the drag and target positions
+      const allNodes = this.dataSource.data;
+      const targetNode = allNodes[targetIndex];
       
       if (targetNode) {
-        const targetParent = this.database.getParent(targetNode.item);
+        // Determine the new parent based on the target position
+        const newParent = this.determineNewParent(draggedNode, targetNode, targetIndex);
         
-        // Only allow reordering if they have the same parent
-        if (draggedParent === targetParent) {
-          this.dataSource.moveNode(draggedNode.item, draggedParent, event.currentIndex);
-          this.showMessage(`Moved "${draggedNode.item}" within the same level`);
+        if (this.canMove(draggedNode.item, newParent)) {
+          const success = this.dataSource.moveNode(draggedNode.item, newParent);
+          if (success) {
+            this.showMessage(`Moved "${draggedNode.item}" ${newParent ? `under "${newParent}"` : 'to root level'}`);
+          }
+        } else {
+          this.showMessage(`Cannot move "${draggedNode.item}" to that location`);
         }
       }
-    } else {
-      // Moving to a different level/parent
-      this.handleCrossContainerDrop(event, draggedNode);
     }
   }
 
-  private handleCrossContainerDrop(event: CdkDragDrop<DynamicFlatNode[]>, draggedNode: DynamicFlatNode) {
-    // For now, we'll handle simple cases
-    // You can extend this to handle more complex drop scenarios
-    this.showMessage(`Cross-container drop not yet implemented for "${draggedNode.item}"`);
+  // Determine the appropriate parent based on drop position
+  private determineNewParent(draggedNode: DynamicFlatNode, targetNode: DynamicFlatNode, targetIndex: number): string | null {
+    const allNodes = this.dataSource.data;
+    
+    // If dropping on a node at the same level, keep the same parent
+    if (draggedNode.level === targetNode.level) {
+      return this.database.getParent(targetNode.item);
+    }
+    
+    // If dropping on a node at a higher level (less indented), use that node's parent
+    if (targetNode.level < draggedNode.level) {
+      return this.database.getParent(targetNode.item);
+    }
+    
+    // If dropping on a node at a lower level (more indented), find the appropriate parent
+    // Look backwards to find the parent at the appropriate level
+    for (let i = targetIndex - 1; i >= 0; i--) {
+      const potentialParent = allNodes[i];
+      if (potentialParent.level === targetNode.level - 1) {
+        return potentialParent.item;
+      }
+      if (potentialParent.level < targetNode.level - 1) {
+        break;
+      }
+    }
+    
+    return null; // Root level
   }
 
-  // Check if a node can be dropped on another node
-  canDrop(draggedNode: DynamicFlatNode, targetNode: DynamicFlatNode): boolean {
-    // Don't allow dropping on itself
-    if (draggedNode.item === targetNode.item) {
+  // Enhanced validation for moves
+  canMove(draggedItem: string, newParent: string | null): boolean {
+    // Don't allow moving to itself
+    if (draggedItem === newParent) {
       return false;
     }
     
-    // Don't allow dropping a parent on its descendant (would create a cycle)
-    const descendants = this.database.getDescendants(draggedNode.item);
-    return !descendants.has(targetNode.item);
+    // Don't allow moving a parent to its own descendant (would create a cycle)
+    if (newParent) {
+      const descendants = this.database.getDescendants(draggedItem);
+      if (descendants.has(newParent)) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 
   // Drop a node onto another node (make it a child)
   dropOnNode(draggedNode: DynamicFlatNode, targetNode: DynamicFlatNode) {
-    if (this.canDrop(draggedNode, targetNode)) {
+    
+    if (this.canMove(draggedNode.item, targetNode.item)) {
       const success = this.dataSource.moveNode(draggedNode.item, targetNode.item);
       if (success) {
         this.showMessage(`Moved "${draggedNode.item}" under "${targetNode.item}"`);
@@ -790,6 +829,8 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
       } else {
         this.showMessage(`Cannot move "${draggedNode.item}" under "${targetNode.item}"`);
       }
+    } else {
+      this.showMessage(`Cannot move "${draggedNode.item}" under "${targetNode.item}" - would create a cycle`);
     }
   }
 

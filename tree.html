@@ -32,7 +32,7 @@
         <span class="node-content" 
               cdkDropList 
               [cdkDropListData]="[node]"
-              (cdkDropListDropped)="dropOnNode($event.item.data, node)">
+              (cdkDropListDropped)="dropOnNode($any($event).item.data, node)">
           {{node.item}}
         </span>
         
@@ -79,7 +79,7 @@
         <span class="node-content" 
               cdkDropList 
               [cdkDropListData]="[node]"
-              (cdkDropListDropped)="dropOnNode($event.item.data, node)">
+              (cdkDropListDropped)="dropOnNode($any($event).item.data, node)">
           {{node.item}}
         </span>
 
