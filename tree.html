@@ -1,0 +1,92 @@
+<div class="tree-container">
+  <!-- Filter Section -->
+  <div class="filter-section">
+    <mat-form-field class="example-filter">
+      <mat-label>Filter</mat-label>
+      <input matInput #filterInput (keyup)="applyFilter(filterInput.value)" placeholder="Search item">
+    </mat-form-field>
+    
+    <!-- Add Root Node Button -->
+    <button mat-raised-button color="primary" (click)="addRootNode()" class="add-root-btn">
+      <mat-icon>add</mat-icon>
+      Add Root Node
+    </button>
+  </div>
+
+  <!-- Tree -->
+  <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="example-tree">
+    <!-- Leaf nodes -->
+    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+      <button mat-icon-button disabled></button>
+      <span class="node-content">{{node.item}}</span>
+      
+      <!-- CRUD Action Buttons -->
+      <div class="node-actions">
+        <button mat-icon-button 
+                [matMenuTriggerFor]="leafMenu" 
+                [matMenuTriggerData]="{node: node}"
+                class="action-btn">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+      </div>
+    </mat-tree-node>
+
+    <!-- Parent nodes -->
+    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+      <button mat-icon-button
+              [attr.aria-label]="'Toggle ' + node.item" 
+              matTreeNodeToggle>
+        <mat-icon class="mat-icon-rtl-mirror">
+          {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+        </mat-icon>
+      </button>
+      <span class="node-content">{{node.item}}</span>
+      
+      <!-- CRUD Action Buttons -->
+      <div class="node-actions">
+        <button mat-icon-button 
+                [matMenuTriggerFor]="parentMenu" 
+                [matMenuTriggerData]="{node: node}"
+                class="action-btn">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+      </div>
+      
+      <mat-progress-bar *ngIf="node.isLoading"
+                        mode="indeterminate"
+                        class="example-tree-progress-bar"></mat-progress-bar>
+    </mat-tree-node>
+  </mat-tree>
+</div>
+
+<!-- Context Menu for Parent Nodes -->
+<mat-menu #parentMenu="matMenu">
+  <ng-template matMenuContent let-node="node">
+    <button mat-menu-item (click)="addChildNode(node)">
+      <mat-icon>add</mat-icon>
+      <span>Add Child</span>
+    </button>
+    <button mat-menu-item (click)="editNode(node)">
+      <mat-icon>edit</mat-icon>
+      <span>Rename</span>
+    </button>
+    <button mat-menu-item (click)="deleteNode(node)" class="delete-action">
+      <mat-icon>delete</mat-icon>
+      <span>Delete</span>
+    </button>
+  </ng-template>
+</mat-menu>
+
+<!-- Context Menu for Leaf Nodes -->
+<mat-menu #leafMenu="matMenu">
+  <ng-template matMenuContent let-node="node">
+    <button mat-menu-item (click)="editNode(node)">
+      <mat-icon>edit</mat-icon>
+      <span>Rename</span>
+    </button>
+    <button mat-menu-item (click)="deleteNode(node)" class="delete-action">
+      <mat-icon>delete</mat-icon>
+      <span>Delete</span>
+    </button>
+  </ng-template>
+</mat-menu>

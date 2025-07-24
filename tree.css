@@ -1,0 +1,190 @@
+.tree-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.filter-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.example-filter {
+  flex: 1;
+  min-width: 200px;
+}
+
+.add-root-btn {
+  white-space: nowrap;
+}
+
+.example-tree {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 300px;
+}
+
+.mat-tree-node {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.mat-tree-node:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.node-content {
+  flex: 1;
+  margin-right: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.node-actions {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mat-tree-node:hover .node-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.action-btn .mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.example-tree-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+/* Dialog styles */
+.full-width {
+  width: 100%;
+}
+
+/* Menu item styles */
+.delete-action {
+  color: #f44336;
+}
+
+.delete-action .mat-icon {
+  color: #f44336;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .tree-container {
+    padding: 16px;
+  }
+  
+  .filter-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .add-root-btn {
+    width: 100%;
+  }
+  
+  .example-filter {
+    width: 100%;
+  }
+}
+
+/* Material Design enhancements */
+.mat-tree-node {
+  border-left: 3px solid transparent;
+}
+
+.mat-tree-node:hover {
+  border-left-color: #1976d2;
+}
+
+.mat-form-field {
+  font-size: 14px;
+}
+
+.mat-raised-button {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Animation for new nodes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mat-tree-node {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Focus styles for accessibility */
+.mat-tree-node:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+.action-btn:focus {
+  background-color: rgba(25, 118, 210, 0.1);
+}
+
+/* Loading state */
+.mat-tree-node.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Success/Error message styles */
+.mat-snack-bar-container {
+  color: white;
+}
+
+/* Menu styling */
+.mat-menu-panel {
+  min-width: 150px;
+}
+
+.mat-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mat-menu-item .mat-icon {
+  margin: 0;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
