@@ -20,13 +20,19 @@
       <button mat-icon-button disabled></button>
       <span class="node-content">{{node.item}}</span>
       
-      <!-- CRUD Action Buttons -->
+      <!-- Direct CRUD Action Buttons -->
       <div class="node-actions">
         <button mat-icon-button 
-                [matMenuTriggerFor]="leafMenu" 
-                [matMenuTriggerData]="{node: node}"
-                class="action-btn">
-          <mat-icon>more_vert</mat-icon>
+                (click)="editNode(node)"
+                class="action-btn edit-btn"
+                matTooltip="Rename">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="deleteNode(node)"
+                class="action-btn delete-btn"
+                matTooltip="Delete">
+          <mat-icon>delete</mat-icon>
         </button>
       </div>
     </mat-tree-node>
@@ -42,13 +48,25 @@
       </button>
       <span class="node-content">{{node.item}}</span>
       
-      <!-- CRUD Action Buttons -->
+      <!-- Direct CRUD Action Buttons -->
       <div class="node-actions">
         <button mat-icon-button 
-                [matMenuTriggerFor]="parentMenu" 
-                [matMenuTriggerData]="{node: node}"
-                class="action-btn">
-          <mat-icon>more_vert</mat-icon>
+                (click)="addChildNode(node)"
+                class="action-btn add-btn"
+                matTooltip="Add Child">
+          <mat-icon>add</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="editNode(node)"
+                class="action-btn edit-btn"
+                matTooltip="Rename">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="deleteNode(node)"
+                class="action-btn delete-btn"
+                matTooltip="Delete">
+          <mat-icon>delete</mat-icon>
         </button>
       </div>
       
@@ -59,34 +77,3 @@
   </mat-tree>
 </div>
 
-<!-- Context Menu for Parent Nodes -->
-<mat-menu #parentMenu="matMenu">
-  <ng-template matMenuContent let-node="node">
-    <button mat-menu-item (click)="addChildNode(node)">
-      <mat-icon>add</mat-icon>
-      <span>Add Child</span>
-    </button>
-    <button mat-menu-item (click)="editNode(node)">
-      <mat-icon>edit</mat-icon>
-      <span>Rename</span>
-    </button>
-    <button mat-menu-item (click)="deleteNode(node)" class="delete-action">
-      <mat-icon>delete</mat-icon>
-      <span>Delete</span>
-    </button>
-  </ng-template>
-</mat-menu>
-
-<!-- Context Menu for Leaf Nodes -->
-<mat-menu #leafMenu="matMenu">
-  <ng-template matMenuContent let-node="node">
-    <button mat-menu-item (click)="editNode(node)">
-      <mat-icon>edit</mat-icon>
-      <span>Rename</span>
-    </button>
-    <button mat-menu-item (click)="deleteNode(node)" class="delete-action">
-      <mat-icon>delete</mat-icon>
-      <span>Delete</span>
-    </button>
-  </ng-template>
-</mat-menu>

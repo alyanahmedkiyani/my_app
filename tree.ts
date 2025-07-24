@@ -11,6 +11,7 @@ import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angu
 import { Inject } from '@angular/core';
 
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import {BehaviorSubject, merge, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
@@ -482,7 +483,7 @@ export class NodeDialogComponent {
   styleUrls: ['./tree.css'],
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
-    MatButtonModule, MatMenuModule, MatDialogModule
+    MatButtonModule, MatTooltipModule, MatDialogModule
   ]
 })
 export class Tree { // Renamed from TreeDynamicExample to Tree as per your import

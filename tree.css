@@ -31,11 +31,12 @@
 .mat-tree-node {
   display: flex;
   align-items: center;
-  min-height: 48px;
-  padding: 0 8px;
+  min-height: 44px;
+  padding: 4px 8px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
   position: relative;
+  margin: 2px 0;
 }
 
 .mat-tree-node:hover {
@@ -53,8 +54,10 @@
 .node-actions {
   display: flex;
   align-items: center;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.2s ease;
+  margin-left: 8px;
 }
 
 .mat-tree-node:hover .node-actions {
@@ -62,15 +65,45 @@
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .action-btn .mat-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Individual button styles */
+.add-btn {
+  color: #4caf50;
+}
+
+.add-btn:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #2e7d32;
+}
+
+.edit-btn {
+  color: #2196f3;
+}
+
+.edit-btn:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #1565c0;
+}
+
+.delete-btn {
+  color: #f44336;
+}
+
+.delete-btn:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #c62828;
 }
 
 .example-tree-progress-bar {
@@ -86,14 +119,7 @@
   width: 100%;
 }
 
-/* Menu item styles */
-.delete-action {
-  color: #f44336;
-}
 
-.delete-action .mat-icon {
-  color: #f44336;
-}
 
 /* Responsive design */
 @media (max-width: 600px) {
@@ -190,20 +216,3 @@
   opacity: 1;
 }
 
-/* Menu styling */
-.mat-menu-panel {
-  min-width: 150px;
-}
-
-.mat-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mat-menu-item .mat-icon {
-  margin: 0;
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
-}
