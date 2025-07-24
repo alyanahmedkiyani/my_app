@@ -482,25 +482,8 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 // Dialog Components
 @Component({
   selector: 'node-dialog',
-  template: `
-    <h2 mat-dialog-title>{{data.title}}</h2>
-    <mat-dialog-content>
-      <mat-form-field class="full-width">
-        <mat-label>{{data.label}}</mat-label>
-        <input matInput [(ngModel)]="data.value" [placeholder]="data.placeholder">
-      </mat-form-field>
-    </mat-dialog-content>
-    <mat-dialog-actions>
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button mat-button [mat-dialog-close]="data.value" cdkFocusInitial 
-              [disabled]="!data.value || !data.value.trim()">{{data.action}}</button>
-    </mat-dialog-actions>
-  `,
-  styles: [`
-    .full-width {
-      width: 100%;
-    }
-  `],
+  templateUrl: './node-dialog.component.html',
+  styleUrls: ['./node-dialog.component.css'],
   standalone: true,
   imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule]
 })
@@ -520,92 +503,7 @@ export class NodeDialogComponent {
  */
 @Component({
   selector: 'tree-dynamic-example',
-  template: `
-    <div class="tree-container">
-      <!-- Filter Section -->
-      <div class="filter-section">
-        <mat-form-field class="example-filter">
-          <mat-label>Filter</mat-label>
-          <input matInput #filterInput (keyup)="applyFilter(filterInput.value)" placeholder="Search item">
-        </mat-form-field>
-        
-        <!-- Add Root Node Button -->
-        <button mat-raised-button color="primary" (click)="addRootNode()" class="add-root-btn">
-          <mat-icon>add</mat-icon>
-          Add Root Node
-        </button>
-      </div>
-
-      <!-- Tree -->
-      <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="example-tree">
-        <!-- Leaf nodes -->
-        <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
-          <button mat-icon-button disabled></button>
-          <span class="node-content">{{node.item}}</span>
-          
-          <!-- Direct CRUD Action Buttons -->
-          <div class="node-actions">
-            <button mat-icon-button 
-                    (click)="addChildNode(node)"
-                    class="action-btn add-btn"
-                    matTooltip="Add Child">
-              <mat-icon>add</mat-icon>
-            </button>
-            <button mat-icon-button 
-                    (click)="editNode(node)"
-                    class="action-btn edit-btn"
-                    matTooltip="Rename">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button 
-                    (click)="deleteNode(node)"
-                    class="action-btn delete-btn"
-                    matTooltip="Delete">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </mat-tree-node>
-
-        <!-- Parent nodes -->
-        <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
-          <button mat-icon-button
-                  [attr.aria-label]="'Toggle ' + node.item" 
-                  matTreeNodeToggle>
-            <mat-icon class="mat-icon-rtl-mirror">
-              {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
-            </mat-icon>
-          </button>
-          <span class="node-content">{{node.item}}</span>
-          
-          <!-- Direct CRUD Action Buttons -->
-          <div class="node-actions">
-            <button mat-icon-button 
-                    (click)="addChildNode(node)"
-                    class="action-btn add-btn"
-                    matTooltip="Add Child">
-              <mat-icon>add</mat-icon>
-            </button>
-            <button mat-icon-button 
-                    (click)="editNode(node)"
-                    class="action-btn edit-btn"
-                    matTooltip="Rename">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button 
-                    (click)="deleteNode(node)"
-                    class="action-btn delete-btn"
-                    matTooltip="Delete">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-          
-          <mat-progress-bar *ngIf="node.isLoading"
-                            mode="indeterminate"
-                            class="example-tree-progress-bar"></mat-progress-bar>
-        </mat-tree-node>
-      </mat-tree>
-    </div>
-  `,
+  templateUrl: './tree.html',
   styleUrls: ['./tree.css'],
   standalone: true,
   imports: [MatFormFieldModule, MatIconModule,
