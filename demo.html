@@ -73,14 +73,15 @@
         <h1>🌳 Dynamic Tree Component</h1>
         
         <div class="info-box">
-            <h3>✅ Issue Fixed: Adding Children to Any Node</h3>
-            <p>The tree component has been updated to properly handle adding children to any node, including leaf nodes. Here's what was fixed:</p>
+            <h3>✅ Issues Fixed: Complete Dynamic Tree Behavior</h3>
+            <p>The tree component has been updated with proper dynamic behavior. Here's what was fixed:</p>
             
             <ul class="feature-list">
                 <li><span class="checkmark">✓</span><strong>Leaf nodes can become parents:</strong> Any node can now have children added to it</li>
                 <li><span class="checkmark">✓</span><strong>Proper expandable state:</strong> Nodes only show the expand/collapse icon when they actually have children</li>
                 <li><span class="checkmark">✓</span><strong>Dynamic tree structure:</strong> New child nodes are created as leaf nodes (no expand icon) until they get their own children</li>
-                <li><span class="checkmark">✓</span><strong>Root nodes vs child nodes:</strong> Root nodes are expandable by default, child nodes are not</li>
+                <li><span class="checkmark">✓</span><strong>Parents become leaf nodes:</strong> When all children are deleted, parent nodes lose their expand/collapse icon</li>
+                <li><span class="checkmark">✓</span><strong>Root nodes vs child nodes:</strong> Root nodes are expandable by default, child nodes become expandable only when they have children</li>
                 <li><span class="checkmark">✓</span><strong>Consistent UI:</strong> All nodes show Add Child, Edit, and Delete buttons on hover</li>
             </ul>
         </div>
@@ -89,18 +90,24 @@
         
         <h4>1. Database Logic Fix</h4>
         <div class="code-snippet">
-// OLD: New child nodes were always added to dataMap (making them expandable)
-this.dataMap.set(newNodeName, []);
-
-// NEW: Child nodes are NOT added to dataMap initially (leaf nodes)
-// Only root nodes and nodes with children are in dataMap
+// CREATION: Child nodes are NOT added to dataMap initially
 if (parentItem === null) {
-    // Root nodes are expandable
-    this.dataMap.set(newNodeName, []);
+    this.dataMap.set(newNodeName, []); // Root nodes are expandable
 } else {
     // Child nodes are leaf nodes initially
-    // They get added to dataMap only when they get children
 }
+
+// DELETION: Remove parent from dataMap if no children left
+this.dataMap.forEach((childrenArray, parent) => {
+    const childIndex = childrenArray.indexOf(nodeName);
+    if (childIndex !== -1) {
+        childrenArray.splice(childIndex, 1);
+        // If parent has no children left AND is not a root node
+        if (childrenArray.length === 0 && !this.rootLevelNodes.includes(parent)) {
+            this.dataMap.delete(parent); // Make it a leaf node
+        }
+    }
+});
         </div>
         
         <h4>2. HTML Template Fix</h4>
@@ -120,6 +127,8 @@ if (parentItem === null) {
             <li><span class="checkmark">✓</span>When you add a root node → it shows with expand icon (expandable)</li>
             <li><span class="checkmark">✓</span>When you add a child to any node → the child appears as a leaf node (no expand icon)</li>
             <li><span class="checkmark">✓</span>When you add a child to a leaf node → the leaf becomes expandable and shows the expand icon</li>
+            <li><span class="checkmark">✓</span>When you delete all children from a parent → the parent loses its expand icon and becomes a leaf</li>
+            <li><span class="checkmark">✓</span>Root nodes remain expandable even when empty (design choice)</li>
             <li><span class="checkmark">✓</span>All nodes show Add Child, Edit, and Delete buttons on hover</li>
             <li><span class="checkmark">✓</span>The tree automatically expands to show newly added children</li>
         </ul>

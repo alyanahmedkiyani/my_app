@@ -136,7 +136,7 @@ export class DynamicDatabase {
 
   // Delete a node
   deleteNode(nodeName: string): boolean {
-    // Remove from dataMap
+    // Remove from dataMap (this removes the node and all its children from being expandable)
     this.dataMap.delete(nodeName);
 
     // Remove from root level nodes
@@ -145,11 +145,17 @@ export class DynamicDatabase {
       this.rootLevelNodes.splice(rootIndex, 1);
     }
 
-    // Remove from parent's children arrays
+    // Remove from parent's children arrays and check if parent should become a leaf
     this.dataMap.forEach((childrenArray, parent) => {
       const childIndex = childrenArray.indexOf(nodeName);
       if (childIndex !== -1) {
         childrenArray.splice(childIndex, 1);
+        
+        // If parent has no children left, remove it from dataMap (make it a leaf)
+        // UNLESS it's a root node (root nodes should remain expandable even when empty)
+        if (childrenArray.length === 0 && !this.rootLevelNodes.includes(parent)) {
+          this.dataMap.delete(parent);
+        }
       }
     });
 
@@ -215,10 +221,11 @@ export class DynamicDatabase {
     const allNodes: DynamicFlatNode[] = [];
     const buildNodes = (items: string[], level: number) => {
       for (const item of items) {
+        // Always check current expandable state (important for nodes that become/stop being expandable)
         const expandable = this.isExpandable(item);
         allNodes.push(new DynamicFlatNode(item, level, expandable));
         const children = this.getChildren(item);
-        if (children) {
+        if (children && children.length > 0) {
           buildNodes(children, level + 1);
         }
       }
@@ -533,9 +540,25 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
 
   deleteNode(node: DynamicFlatNode) {
     if (confirm(`Are you sure you want to delete "${node.item}" and all its children?`)) {
+      // Find the parent of the node being deleted
+      const parentName = this.database.getParent(node.item);
+      
       const success = this.dataSource.deleteNode(node.item);
       if (success) {
         this.showMessage(`Node "${node.item}" deleted successfully!`);
+        
+        // If the deleted node had a parent, check if parent should collapse
+        if (parentName) {
+          // Check if parent still has children after deletion
+          const parentChildren = this.database.getChildren(parentName);
+          if (!parentChildren || parentChildren.length === 0) {
+            // Parent has no children left, find it in current data and collapse it
+            const parentNode = this.dataSource.data.find(n => n.item === parentName);
+            if (parentNode && this.treeControl.isExpanded(parentNode)) {
+              this.treeControl.collapse(parentNode);
+            }
+          }
+        }
       } else {
         this.showMessage(`Failed to delete node "${node.item}".`);
       }
