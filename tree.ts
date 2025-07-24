@@ -7,24 +7,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { Inject } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem, CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
 
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { FormsModule } from '@angular/forms';
 import {BehaviorSubject, merge, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
-
-// Interface for dialog data
-export interface DialogData {
-  title: string;
-  label: string;
-  value: string;
-  action: string;
-  placeholder: string;
-}
 
 /** Flat node with expandable and level information */
 export class DynamicFlatNode {
@@ -555,24 +543,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   }
 }
 
-// Dialog Components
-@Component({
-  selector: 'node-dialog',
-  templateUrl: './node-dialog.component.html',
-  styleUrls: ['./node-dialog.component.css'],
-  standalone: true,
-  imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule]
-})
-export class NodeDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<NodeDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: DialogData
-  ) {}
 
-  onCancel(): void {
-    this.dialogRef.close();
-  }
-}
 
 /**
  * @title Tree with dynamic data
@@ -584,13 +555,12 @@ export class NodeDialogComponent {
   standalone: true,
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
-    MatButtonModule, MatTooltipModule, MatDialogModule, DragDropModule
+    MatButtonModule, MatTooltipModule, DragDropModule
   ]
 })
 export class Tree { // Renamed from TreeDynamicExample to Tree as per your import
   constructor(
-    private database: DynamicDatabase,
-    private dialog: MatDialog
+    private database: DynamicDatabase
   ) {
     this.treeControl = new FlatTreeControl<DynamicFlatNode>(this.getLevel, this.isExpandable);
     this.dataSource = new DynamicDataSource(this.treeControl, database);
@@ -609,50 +579,47 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
 
   // CRUD Operations
   addRootNode() {
-    this.openNodeDialog('Add Root Node', 'Node Name', '', 'Add', (result: string) => {
-      if (result) {
-        const success = this.dataSource.createNode(null, result);
-        if (success) {
-          this.showMessage(`Root node "${result}" added successfully!`);
-        } else {
-          this.showMessage(`Failed to add root node. Node "${result}" may already exist.`);
-        }
+    const nodeName = prompt('Enter root node name:');
+    if (nodeName && nodeName.trim()) {
+      const success = this.dataSource.createNode(null, nodeName.trim());
+      if (success) {
+        this.showMessage(`Root node "${nodeName}" added successfully!`);
+      } else {
+        this.showMessage(`Failed to add root node. Node "${nodeName}" may already exist.`);
       }
-    });
+    }
   }
 
   addChildNode(parentNode: DynamicFlatNode) {
-    this.openNodeDialog('Add Child Node', 'Node Name', '', 'Add', (result: string) => {
-      if (result) {
-        const success = this.dataSource.createNode(parentNode.item, result);
-        if (success) {
-          this.showMessage(`Child node "${result}" added to "${parentNode.item}" successfully!`);
-          // After refresh, the expansion state will be maintained automatically
-          // But we should also ensure the parent is expanded to show the new child
-          setTimeout(() => {
-            const updatedParent = this.treeControl.dataNodes.find(node => node.item === parentNode.item);
-            if (updatedParent) {
-              this.treeControl.expand(updatedParent);
-            }
-          }, 100);
-        } else {
-          this.showMessage(`Failed to add child node. Node "${result}" may already exist.`);
-        }
+    const nodeName = prompt(`Enter child node name for "${parentNode.item}":`);
+    if (nodeName && nodeName.trim()) {
+      const success = this.dataSource.createNode(parentNode.item, nodeName.trim());
+      if (success) {
+        this.showMessage(`Child node "${nodeName}" added to "${parentNode.item}" successfully!`);
+        // After refresh, the expansion state will be maintained automatically
+        // But we should also ensure the parent is expanded to show the new child
+        setTimeout(() => {
+          const updatedParent = this.treeControl.dataNodes.find(node => node.item === parentNode.item);
+          if (updatedParent) {
+            this.treeControl.expand(updatedParent);
+          }
+        }, 100);
+      } else {
+        this.showMessage(`Failed to add child node. Node "${nodeName}" may already exist.`);
       }
-    });
+    }
   }
 
   editNode(node: DynamicFlatNode) {
-    this.openNodeDialog('Edit Node', 'Node Name', node.item, 'Update', (result: string) => {
-      if (result && result !== node.item) {
-        const success = this.dataSource.updateNode(node.item, result);
-        if (success) {
-          this.showMessage(`Node renamed from "${node.item}" to "${result}" successfully!`);
-        } else {
-          this.showMessage(`Failed to rename node. Node "${result}" may already exist.`);
-        }
+    const newName = prompt(`Rename "${node.item}" to:`, node.item);
+    if (newName && newName.trim() && newName !== node.item) {
+      const success = this.dataSource.updateNode(node.item, newName.trim());
+      if (success) {
+        this.showMessage(`Node renamed from "${node.item}" to "${newName}" successfully!`);
+      } else {
+        this.showMessage(`Failed to rename node. Node "${newName}" may already exist.`);
       }
-    });
+    }
   }
 
   deleteNode(node: DynamicFlatNode) {
@@ -666,18 +633,7 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
     }
   }
 
-  private openNodeDialog(title: string, label: string, value: string, action: string, callback: (result: string) => void) {
-    const dialogRef = this.dialog.open(NodeDialogComponent, {
-      width: '300px',
-      data: { title, label, value, action, placeholder: 'Enter node name' } as DialogData
-    });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        callback(result);
-      }
-    });
-  }
 
   // Drag and Drop functionality
   onDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
