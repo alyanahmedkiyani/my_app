@@ -81,6 +81,7 @@
                 <li><span class="checkmark">✓</span><strong>Proper expandable state:</strong> Nodes only show the expand/collapse icon when they actually have children</li>
                 <li><span class="checkmark">✓</span><strong>Dynamic tree structure:</strong> New child nodes are created as leaf nodes (no expand icon) until they get their own children</li>
                 <li><span class="checkmark">✓</span><strong>Parents become leaf nodes:</strong> When all children are deleted, parent nodes lose their expand/collapse icon</li>
+                <li><span class="checkmark">✓</span><strong>State preservation:</strong> Tree expansion state is maintained during CRUD operations</li>
                 <li><span class="checkmark">✓</span><strong>Root nodes vs child nodes:</strong> Root nodes are expandable by default, child nodes become expandable only when they have children</li>
                 <li><span class="checkmark">✓</span><strong>Consistent UI:</strong> All nodes show Add Child, Edit, and Delete buttons on hover</li>
             </ul>
@@ -88,7 +89,28 @@
         
         <h3>🔧 Key Changes Made</h3>
         
-        <h4>1. Database Logic Fix</h4>
+        <h4>1. State Preservation Fix</h4>
+        <div class="code-snippet">
+// PRESERVE EXPANSION STATE during refresh
+refreshData() {
+    // Store currently expanded nodes
+    const expandedNodeItems = new Set&lt;string&gt;();
+    this._treeControl.dataNodes.forEach(node => {
+        if (this._treeControl.isExpanded(node)) {
+            expandedNodeItems.add(node.item);
+        }
+    });
+
+    // Refresh data
+    this._fullData = this._database.getAllNodes();
+    // ... update data ...
+
+    // Restore expansion state
+    this.restoreExpansionState(expandedNodeItems);
+}
+        </div>
+
+        <h4>2. Database Logic Fix</h4>
         <div class="code-snippet">
 // CREATION: Child nodes are NOT added to dataMap initially
 if (parentItem === null) {
@@ -98,19 +120,12 @@ if (parentItem === null) {
 }
 
 // DELETION: Remove parent from dataMap if no children left
-this.dataMap.forEach((childrenArray, parent) => {
-    const childIndex = childrenArray.indexOf(nodeName);
-    if (childIndex !== -1) {
-        childrenArray.splice(childIndex, 1);
-        // If parent has no children left AND is not a root node
-        if (childrenArray.length === 0 && !this.rootLevelNodes.includes(parent)) {
-            this.dataMap.delete(parent); // Make it a leaf node
-        }
-    }
-});
+if (childrenArray.length === 0 && !this.rootLevelNodes.includes(parent)) {
+    this.dataMap.delete(parent); // Make it a leaf node
+}
         </div>
         
-        <h4>2. HTML Template Fix</h4>
+                  <h4>3. HTML Template Fix</h4>
         <div class="code-snippet">
 <!-- Added "Add Child" button to leaf nodes template -->
 &lt;mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding&gt;
@@ -128,9 +143,10 @@ this.dataMap.forEach((childrenArray, parent) => {
             <li><span class="checkmark">✓</span>When you add a child to any node → the child appears as a leaf node (no expand icon)</li>
             <li><span class="checkmark">✓</span>When you add a child to a leaf node → the leaf becomes expandable and shows the expand icon</li>
             <li><span class="checkmark">✓</span>When you delete all children from a parent → the parent loses its expand icon and becomes a leaf</li>
+            <li><span class="checkmark">✓</span><strong>Tree expansion state is preserved during CRUD operations</strong></li>
             <li><span class="checkmark">✓</span>Root nodes remain expandable even when empty (design choice)</li>
             <li><span class="checkmark">✓</span>All nodes show Add Child, Edit, and Delete buttons on hover</li>
-            <li><span class="checkmark">✓</span>The tree automatically expands to show newly added children</li>
+            <li><span class="checkmark">✓</span>Smart expansion: only expand to show new children when parent was already expanded or just became expandable</li>
         </ul>
         
         <h3>📁 Files Modified</h3>

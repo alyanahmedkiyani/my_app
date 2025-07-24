@@ -265,14 +265,37 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     this.refreshData();
   }
 
-  // Refresh data from database and reapply filter
+  // Refresh data from database and reapply filter while preserving expansion state
   refreshData() {
+    // Store currently expanded nodes
+    const expandedNodeItems = new Set<string>();
+    this._treeControl.dataNodes.forEach(node => {
+      if (this._treeControl.isExpanded(node)) {
+        expandedNodeItems.add(node.item);
+      }
+    });
+
     this._fullData = this._database.getAllNodes();
     if (this._currentFilter) {
       this.filter(this._currentFilter);
     } else {
       this.data = this._database.initialData();
     }
+
+    // Restore expansion state
+    this.restoreExpansionState(expandedNodeItems);
+  }
+
+  // Helper method to restore expansion state
+  private restoreExpansionState(expandedNodeItems: Set<string>) {
+    // Wait for the next tick to ensure data is fully updated
+    setTimeout(() => {
+      this._treeControl.dataNodes.forEach(node => {
+        if (expandedNodeItems.has(node.item) && node.expandable) {
+          this._treeControl.expand(node);
+        }
+      });
+    }, 0);
   }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
@@ -343,9 +366,18 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     this._currentFilter = filterText; // Store current filter
 
     if (!filterText) {
-      // If filter is empty, restore initial root data and collapse all
+      // If filter is empty, restore initial root data but preserve expansion state
+      const expandedNodeItems = new Set<string>();
+      this._treeControl.dataNodes.forEach(node => {
+        if (this._treeControl.isExpanded(node)) {
+          expandedNodeItems.add(node.item);
+        }
+      });
+
       this.data = this._database.initialData(); // This calls the setter, which calls dataChange.next()
-      this._treeControl.collapseAll();
+      
+      // Restore expansion state instead of collapsing all
+      this.restoreExpansionState(expandedNodeItems);
       return;
     }
 
@@ -499,25 +531,24 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
   addChildNode(parentNode: DynamicFlatNode) {
     this.openNodeDialog('Add Child Node', 'Node Name', '', 'Add', (result: string) => {
       if (result) {
-        // Check if parent was a leaf node before adding child
+        // Store whether parent was expanded and was a leaf node before the operation
+        const wasParentExpanded = this.treeControl.isExpanded(parentNode);
         const wasLeafNode = !this.database.isExpandable(parentNode.item);
         
         const success = this.dataSource.createNode(parentNode.item, result);
         if (success) {
           this.showMessage(`Child node "${result}" added to "${parentNode.item}" successfully!`);
           
-          // If the parent was a leaf node, we need to initialize it in dataMap
-          if (wasLeafNode) {
-            // The createNode method already added the child, so we just need to ensure
-            // the parent is now in the dataMap (this happens automatically in createNode)
-            // but we need to refresh the data to reflect the new expandable state
-          }
-          
-          // Find the updated parent node in the refreshed data and expand it
-          const updatedParentNode = this.dataSource.data.find(node => node.item === parentNode.item);
-          if (updatedParentNode && updatedParentNode.expandable) {
-            this.treeControl.expand(updatedParentNode);
-          }
+          // Determine if we should expand the parent
+          setTimeout(() => {
+            const updatedParentNode = this.dataSource.data.find(node => node.item === parentNode.item);
+            if (updatedParentNode && updatedParentNode.expandable) {
+              // Expand if parent was previously expanded OR if it just became expandable (for better UX)
+              if (wasParentExpanded || wasLeafNode) {
+                this.treeControl.expand(updatedParentNode);
+              }
+            }
+          }, 50); // Small delay to ensure data is refreshed
         } else {
           this.showMessage(`Failed to add child node. Node "${result}" may already exist.`);
         }
@@ -549,15 +580,19 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
         
         // If the deleted node had a parent, check if parent should collapse
         if (parentName) {
-          // Check if parent still has children after deletion
-          const parentChildren = this.database.getChildren(parentName);
-          if (!parentChildren || parentChildren.length === 0) {
-            // Parent has no children left, find it in current data and collapse it
-            const parentNode = this.dataSource.data.find(n => n.item === parentName);
-            if (parentNode && this.treeControl.isExpanded(parentNode)) {
-              this.treeControl.collapse(parentNode);
+          // Use setTimeout to ensure the data refresh has completed
+          setTimeout(() => {
+            // Check if parent still has children after deletion and refresh
+            const parentChildren = this.database.getChildren(parentName);
+            if (!parentChildren || parentChildren.length === 0) {
+              // Parent has no children left, find it in current data and collapse it
+              // This is correct behavior - empty parents should collapse
+              const parentNode = this.dataSource.data.find(n => n.item === parentName);
+              if (parentNode && this.treeControl.isExpanded(parentNode)) {
+                this.treeControl.collapse(parentNode);
+              }
             }
-          }
+          }, 100); // Delay to ensure refresh is complete
         }
       } else {
         this.showMessage(`Failed to delete node "${node.item}".`);
