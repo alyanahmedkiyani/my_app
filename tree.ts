@@ -636,7 +636,7 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
 
 
   // Drag and Drop functionality
-  onDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
+  onDrop(event: CdkDragDrop<any>) {
     const draggedNode = event.item.data as DynamicFlatNode;
     const dropContainer = event.container.data[0] as DynamicFlatNode;
     
@@ -676,8 +676,18 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
     return `drop-list-${node.id}`;
   }
 
+  // Get root drop data (empty array for root level)
+  getRootDropData(): any[] {
+    return [];
+  }
+
+  // Get node drop data
+  getNodeDropData(node: DynamicFlatNode): any[] {
+    return [node];
+  }
+
   // Handle dropping on root level
-  onRootDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
+  onRootDrop(event: CdkDragDrop<any>) {
     const draggedNode = event.item.data as DynamicFlatNode;
     
     // Move the node to root level

@@ -18,7 +18,7 @@
     <!-- Root drop zone -->
     <div cdkDropList 
          id="root-drop-zone"
-         [cdkDropListData]="[]"
+         [cdkDropListData]="getRootDropData()"
          (cdkDropListDropped)="onRootDrop($event)"
          class="root-drop-zone">
       <div class="root-drop-indicator">Drop here to move to root level</div>
@@ -28,7 +28,7 @@
       <!-- Leaf nodes -->
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding 
                      cdkDropList
-                     [cdkDropListData]="[node]"
+                     [cdkDropListData]="getNodeDropData(node)"
                      [id]="getDropListId(node)"
                      (cdkDropListDropped)="onDrop($event)"
                      class="tree-node-container">
@@ -74,7 +74,7 @@
       <!-- Parent nodes -->
       <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding
                      cdkDropList
-                     [cdkDropListData]="[node]"
+                     [cdkDropListData]="getNodeDropData(node)"
                      [id]="getDropListId(node)"
                      (cdkDropListDropped)="onDrop($event)"
                      class="tree-node-container">
