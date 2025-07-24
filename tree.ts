@@ -81,19 +81,20 @@ export class DynamicDatabase {
     }
 
     if (parentItem === null) {
-      // Add as root level node
+      // Add as root level node - root nodes start as expandable with empty children
       this.rootLevelNodes.push(newNodeName);
       this.dataMap.set(newNodeName, []);
     } else {
       // Add as child of parent
       let children = this.dataMap.get(parentItem);
       if (!children) {
+        // Parent was a leaf node, now it's becoming a parent
         children = [];
         this.dataMap.set(parentItem, children);
       }
       children.push(newNodeName);
-      // Initialize new node as potentially expandable (empty children array)
-      this.dataMap.set(newNodeName, []);
+      // DON'T initialize new child nodes in dataMap - they should be leaf nodes initially
+      // Only add to dataMap when they actually get children
     }
     return true;
   }
@@ -491,17 +492,23 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
   addChildNode(parentNode: DynamicFlatNode) {
     this.openNodeDialog('Add Child Node', 'Node Name', '', 'Add', (result: string) => {
       if (result) {
+        // Check if parent was a leaf node before adding child
+        const wasLeafNode = !this.database.isExpandable(parentNode.item);
+        
         const success = this.dataSource.createNode(parentNode.item, result);
         if (success) {
           this.showMessage(`Child node "${result}" added to "${parentNode.item}" successfully!`);
           
-          // Update the parent node to be expandable if it wasn't already
-          parentNode.expandable = true;
+          // If the parent was a leaf node, we need to initialize it in dataMap
+          if (wasLeafNode) {
+            // The createNode method already added the child, so we just need to ensure
+            // the parent is now in the dataMap (this happens automatically in createNode)
+            // but we need to refresh the data to reflect the new expandable state
+          }
           
-          // Find the updated parent node in the current data and expand it
+          // Find the updated parent node in the refreshed data and expand it
           const updatedParentNode = this.dataSource.data.find(node => node.item === parentNode.item);
-          if (updatedParentNode) {
-            updatedParentNode.expandable = true;
+          if (updatedParentNode && updatedParentNode.expandable) {
             this.treeControl.expand(updatedParentNode);
           }
         } else {

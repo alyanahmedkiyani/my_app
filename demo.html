@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Tree Demo</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .checkmark {
+            color: #4caf50;
+            margin-right: 8px;
+        }
+        
+        .code-snippet {
+            background: #f5f5f5;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🌳 Dynamic Tree Component</h1>
+        
+        <div class="info-box">
+            <h3>✅ Issue Fixed: Adding Children to Any Node</h3>
+            <p>The tree component has been updated to properly handle adding children to any node, including leaf nodes. Here's what was fixed:</p>
+            
+            <ul class="feature-list">
+                <li><span class="checkmark">✓</span><strong>Leaf nodes can become parents:</strong> Any node can now have children added to it</li>
+                <li><span class="checkmark">✓</span><strong>Proper expandable state:</strong> Nodes only show the expand/collapse icon when they actually have children</li>
+                <li><span class="checkmark">✓</span><strong>Dynamic tree structure:</strong> New child nodes are created as leaf nodes (no expand icon) until they get their own children</li>
+                <li><span class="checkmark">✓</span><strong>Root nodes vs child nodes:</strong> Root nodes are expandable by default, child nodes are not</li>
+                <li><span class="checkmark">✓</span><strong>Consistent UI:</strong> All nodes show Add Child, Edit, and Delete buttons on hover</li>
+            </ul>
+        </div>
+        
+        <h3>🔧 Key Changes Made</h3>
+        
+        <h4>1. Database Logic Fix</h4>
+        <div class="code-snippet">
+// OLD: New child nodes were always added to dataMap (making them expandable)
+this.dataMap.set(newNodeName, []);
+
+// NEW: Child nodes are NOT added to dataMap initially (leaf nodes)
+// Only root nodes and nodes with children are in dataMap
+if (parentItem === null) {
+    // Root nodes are expandable
+    this.dataMap.set(newNodeName, []);
+} else {
+    // Child nodes are leaf nodes initially
+    // They get added to dataMap only when they get children
+}
+        </div>
+        
+        <h4>2. HTML Template Fix</h4>
+        <div class="code-snippet">
+<!-- Added "Add Child" button to leaf nodes template -->
+&lt;mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding&gt;
+  &lt;div class="node-actions"&gt;
+    &lt;button mat-icon-button (click)="addChildNode(node)"&gt;
+      &lt;mat-icon&gt;add&lt;/mat-icon&gt;
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/mat-tree-node&gt;
+        </div>
+        
+        <h3>🎯 Expected Behavior</h3>
+        <ul class="feature-list">
+            <li><span class="checkmark">✓</span>When you add a root node → it shows with expand icon (expandable)</li>
+            <li><span class="checkmark">✓</span>When you add a child to any node → the child appears as a leaf node (no expand icon)</li>
+            <li><span class="checkmark">✓</span>When you add a child to a leaf node → the leaf becomes expandable and shows the expand icon</li>
+            <li><span class="checkmark">✓</span>All nodes show Add Child, Edit, and Delete buttons on hover</li>
+            <li><span class="checkmark">✓</span>The tree automatically expands to show newly added children</li>
+        </ul>
+        
+        <h3>📁 Files Modified</h3>
+        <ul class="feature-list">
+            <li><strong>tree.ts</strong> - Fixed createNode() method and addChildNode() logic</li>
+            <li><strong>tree.html</strong> - Added "Add Child" button to leaf node template</li>
+            <li><strong>tree.css</strong> - Added styling for better UX</li>
+        </ul>
+        
+        <div class="info-box">
+            <h3>🚀 Ready to Use</h3>
+            <p>Your Angular tree component is now ready with the following features:</p>
+            <ul>
+                <li>✅ Complete CRUD operations (Create, Read, Update, Delete)</li>
+                <li>✅ Dynamic tree structure (any node can become a parent)</li>
+                <li>✅ Proper expandable state management</li>
+                <li>✅ Search/filter functionality</li>
+                <li>✅ Modern Material Design UI</li>
+                <li>✅ Responsive layout with hover effects</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
