@@ -59,7 +59,11 @@ export class DynamicDatabase {
 
   /** Initial data from database */
   initialData(): DynamicFlatNode[] {
-    return this.rootLevelNodes.map(name => new DynamicFlatNode(name, 0, true));
+    return this.rootLevelNodes.map(name => {
+      const children = this.getChildren(name);
+      const expandable = children && children.length > 0;
+      return new DynamicFlatNode(name, 0, expandable);
+    });
   }
 
   getChildren(node: string): string[] | undefined {
@@ -231,10 +235,10 @@ export class DynamicDatabase {
     const allNodes: DynamicFlatNode[] = [];
     const buildNodes = (items: string[], level: number) => {
       for (const item of items) {
-        const expandable = this.isExpandable(item);
-        allNodes.push(new DynamicFlatNode(item, level, expandable));
         const children = this.getChildren(item);
-        if (children) {
+        const expandable = children && children.length > 0; // Only expandable if has actual children
+        allNodes.push(new DynamicFlatNode(item, level, expandable));
+        if (children && children.length > 0) {
           buildNodes(children, level + 1);
         }
       }
@@ -265,6 +269,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
   private _fullData: DynamicFlatNode[] = []; // Stores the complete, unfiltered data
   private _currentFilter: string = ''; // Store current filter to reapply after CRUD operations
+  private _expandedNodeItems: Set<string> = new Set(); // Store expanded node items
 
   get data(): DynamicFlatNode[] {
     return this.dataChange.value;
@@ -281,13 +286,40 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     this.refreshData();
   }
 
-  // Refresh data from database and reapply filter
+  // Save current expansion state
+  private saveExpansionState() {
+    this._expandedNodeItems.clear();
+    this._treeControl.dataNodes.forEach(node => {
+      if (this._treeControl.isExpanded(node)) {
+        this._expandedNodeItems.add(node.item);
+      }
+    });
+  }
+
+  // Restore expansion state
+  private restoreExpansionState() {
+    // Wait for the tree to render
+    setTimeout(() => {
+      this._treeControl.dataNodes.forEach(node => {
+        if (this._expandedNodeItems.has(node.item)) {
+          this._treeControl.expand(node);
+        }
+      });
+    }, 0);
+  }
+
+  // Refresh data from database and reapply filter while maintaining expansion state
   refreshData() {
+    // Save current expansion state before refreshing
+    this.saveExpansionState();
+    
     this._fullData = this._database.getAllNodes();
     if (this._currentFilter) {
       this.filter(this._currentFilter);
     } else {
       this.data = this._database.initialData();
+      // Restore expansion state for non-filtered view
+      this.restoreExpansionState();
     }
   }
 
@@ -335,9 +367,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // Simulate async data loading
     setTimeout(() => {
       if (expand) {
-        const newNodes = childrenItems.map(
-          name => new DynamicFlatNode(name, node.level + 1, this._database.isExpandable(name)),
-        );
+        const newNodes = childrenItems.map(name => {
+          const children = this._database.getChildren(name);
+          const expandable = children && children.length > 0;
+          return new DynamicFlatNode(name, node.level + 1, expandable);
+        });
         this.data.splice(index + 1, 0, ...newNodes);
       } else {
         let count = 0;
@@ -409,8 +443,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // 3. Update the data source
     this.data = newData; // This calls the setter, which triggers dataChange.next()
 
-    // 4. Expand the necessary nodes
+    // 4. Expand the necessary nodes and restore previous expansion state
     nodesToExpand.forEach(node => this._treeControl.expand(node));
+    
+    // Also restore any previously expanded nodes that are still visible
+    this.restoreExpansionState();
   }
 
   // CRUD operations that maintain filter state
@@ -526,8 +563,14 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
         const success = this.dataSource.createNode(parentNode.item, result);
         if (success) {
           this.showMessage(`Child node "${result}" added to "${parentNode.item}" successfully!`);
-          // Expand parent to show new child
-          this.treeControl.expand(parentNode);
+          // After refresh, the expansion state will be maintained automatically
+          // But we should also ensure the parent is expanded to show the new child
+          setTimeout(() => {
+            const updatedParent = this.treeControl.dataNodes.find(node => node.item === parentNode.item);
+            if (updatedParent) {
+              this.treeControl.expand(updatedParent);
+            }
+          }, 100);
         } else {
           this.showMessage(`Failed to add child node. Node "${result}" may already exist.`);
         }

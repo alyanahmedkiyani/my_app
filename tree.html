@@ -23,6 +23,12 @@
       <!-- Direct CRUD Action Buttons -->
       <div class="node-actions">
         <button mat-icon-button 
+                (click)="addChildNode(node)"
+                class="action-btn add-btn"
+                matTooltip="Add Child">
+          <mat-icon>add</mat-icon>
+        </button>
+        <button mat-icon-button 
                 (click)="editNode(node)"
                 class="action-btn edit-btn"
                 matTooltip="Rename">

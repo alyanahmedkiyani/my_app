@@ -46,18 +46,18 @@ export class AppComponent {}
 
 #### 1. Create Operations
 - **Add Root Node**: Click the "Add Root Node" button
-- **Add Child Node**: Right-click on any parent node and select "Add Child"
+- **Add Child Node**: Click the "Add" icon on any node (all nodes can have children)
 
 #### 2. Read Operations
 - **Expand/Collapse**: Click the arrow icon next to parent nodes
 - **View Structure**: All nodes are displayed in a hierarchical tree structure
 
 #### 3. Update Operations
-- **Rename Node**: Right-click on any node and select "Rename"
+- **Rename Node**: Click the "Edit" icon on any node
 - Enter the new name in the dialog and click "Update"
 
 #### 4. Delete Operations
-- **Delete Node**: Right-click on any node and select "Delete"
+- **Delete Node**: Click the "Delete" icon on any node
 - Confirm the deletion in the confirmation dialog
 - **Note**: Deleting a parent node removes all its children
 
@@ -80,6 +80,7 @@ The filter feature is robust and maintains tree structure:
 - **Hierarchy preservation**: Shows complete path from root to filtered nodes
 - **Auto-expansion**: Automatically expands nodes to show filtered results
 - **State persistence**: Filter remains active after add/edit/delete operations
+- **Expansion state preservation**: Tree maintains its expanded/collapsed state after any CRUD operation
 
 ## Technical Implementation
 
