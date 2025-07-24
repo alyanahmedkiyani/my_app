@@ -273,20 +273,25 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       expandedItems.add(node.item);
     });
 
+    // Clear expansion model to prevent conflicts during rebuild
+    this._treeControl.expansionModel.clear();
+
     this._fullData = this._database.getAllNodes();
     
     if (this._currentFilter) {
       this.filter(this._currentFilter);
       // For filtered views, the filter method handles expansion
       return;
-    } else {
-      this.data = this._database.initialData();
     }
 
-    // Restore expansion state after a short delay to ensure data is loaded
-    setTimeout(() => {
-      this.restoreExpansionState(expandedItems);
-    }, 100);
+    // If no nodes were expanded, just show initial data
+    if (expandedItems.size === 0) {
+      this.data = this._database.initialData();
+      return;
+    }
+
+    // Restore expansion state immediately without setTimeout to prevent conflicts
+    this.restoreExpansionState(expandedItems);
   }
 
   // Helper method to restore expansion state and rebuild the tree structure
@@ -296,6 +301,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // Build the complete expanded tree structure
     const expandedData: DynamicFlatNode[] = [];
     const processedNodes = new Set<string>();
+    const nodesToExpandInControl: DynamicFlatNode[] = [];
 
     // Helper function to add node and its children if expanded
     const addNodeWithChildren = (item: string, level: number) => {
@@ -304,6 +310,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
       const node = new DynamicFlatNode(item, level, this._database.isExpandable(item));
       expandedData.push(node);
+
+      // Track nodes that should be expanded in the tree control
+      if (expandedItems.has(item) && node.expandable) {
+        nodesToExpandInControl.push(node);
+      }
 
       // If this node was expanded, add its children
       if (expandedItems.has(item)) {
@@ -324,17 +335,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // Update the data with the expanded structure
     this.data = expandedData;
 
-    // Now set the expansion state in the tree control
-    setTimeout(() => {
-      this.data.forEach(node => {
-        if (expandedItems.has(node.item) && node.expandable) {
-          if (!this._treeControl.isExpanded(node)) {
-            // Use the tree control's internal expansion without triggering toggleNode
-            this._treeControl.expansionModel.select(node);
-          }
-        }
-      });
-    }, 10);
+    // Set the expansion state in the tree control
+    // The expansion model is already cleared in refreshData()
+    nodesToExpandInControl.forEach(node => {
+      this._treeControl.expansionModel.select(node);
+    });
   }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
