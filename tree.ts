@@ -493,7 +493,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     <mat-dialog-actions>
       <button mat-button (click)="onCancel()">Cancel</button>
       <button mat-button [mat-dialog-close]="data.value" cdkFocusInitial 
-              [disabled]="!data.value?.trim()">{{data.action}}</button>
+              [disabled]="!data.value || !data.value.trim()">{{data.action}}</button>
     </mat-dialog-actions>
   `,
   styles: [`
