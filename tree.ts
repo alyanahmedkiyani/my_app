@@ -7,12 +7,22 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Inject } from '@angular/core';
 
 import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 import {BehaviorSubject, merge, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+
+// Interface for dialog data
+export interface DialogData {
+  title: string;
+  label: string;
+  value: string;
+  action: string;
+  placeholder: string;
+}
 
 /** Flat node with expandable and level information */
 export class DynamicFlatNode {
@@ -454,8 +464,8 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 })
 export class NodeDialogComponent {
   constructor(
-    public dialogRef: any,
-    public data: any
+    public dialogRef: MatDialogRef<NodeDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: DialogData
   ) {}
 
   onCancel(): void {
@@ -551,7 +561,7 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
   private openNodeDialog(title: string, label: string, value: string, action: string, callback: (result: string) => void) {
     const dialogRef = this.dialog.open(NodeDialogComponent, {
       width: '300px',
-      data: { title, label, value, action, placeholder: 'Enter node name' }
+      data: { title, label, value, action, placeholder: 'Enter node name' } as DialogData
     });
 
     dialogRef.afterClosed().subscribe(result => {
