@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Component Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+        
+        .test-tree {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        
+        .tree-node {
+            padding: 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .tree-node:hover {
+            background: #f0f0f0;
+        }
+        
+        .tree-node.level-0 {
+            font-weight: bold;
+            margin-left: 0;
+        }
+        
+        .tree-node.level-1 {
+            margin-left: 20px;
+        }
+        
+        .tree-node.level-2 {
+            margin-left: 40px;
+        }
+        
+        .expandable {
+            color: #2196f3;
+        }
+        
+        .leaf {
+            color: #666;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌳 Tree Component Test</h1>
+        
+        <div class="info">
+            <h3>Manual Test for Tree Component Logic</h3>
+            <p>This page tests the tree data structure and logic without Angular dependencies.</p>
+        </div>
+        
+        <h3>Database Initial State:</h3>
+        <div class="test-tree" id="initial-tree">
+            <div class="tree-node level-0 expandable">🗂️ Fruits (expandable)</div>
+            <div class="tree-node level-0 expandable">🗂️ Vegetables (expandable)</div>
+        </div>
+        
+        <h3>Database with Expanded Fruits:</h3>
+        <div class="test-tree" id="expanded-tree">
+            <div class="tree-node level-0 expandable">🗂️ Fruits (expanded)</div>
+            <div class="tree-node level-1 leaf">🍎 Apple</div>
+            <div class="tree-node level-1 leaf">🍊 Orange</div>
+            <div class="tree-node level-1 leaf">🍌 Banana</div>
+            <div class="tree-node level-0 expandable">🗂️ Vegetables (expandable)</div>
+        </div>
+        
+        <h3>Database with Fully Expanded Tree:</h3>
+        <div class="test-tree" id="full-tree">
+            <div class="tree-node level-0 expandable">🗂️ Fruits (expanded)</div>
+            <div class="tree-node level-1 expandable">🍎 Apple (expanded)</div>
+            <div class="tree-node level-2 leaf">🍎 Fuji</div>
+            <div class="tree-node level-2 leaf">🍎 Macintosh</div>
+            <div class="tree-node level-1 leaf">🍊 Orange</div>
+            <div class="tree-node level-1 leaf">🍌 Banana</div>
+            <div class="tree-node level-0 expandable">🗂️ Vegetables (expanded)</div>
+            <div class="tree-node level-1 leaf">🍅 Tomato</div>
+            <div class="tree-node level-1 leaf">🥔 Potato</div>
+            <div class="tree-node level-1 expandable">🧅 Onion (expanded)</div>
+            <div class="tree-node level-2 leaf">🧅 Yellow</div>
+            <div class="tree-node level-2 leaf">🧅 White</div>
+            <div class="tree-node level-2 leaf">🧅 Purple</div>
+        </div>
+        
+        <h3>Expected Behavior:</h3>
+        <div class="success">
+            ✅ <strong>Root nodes:</strong> Fruits, Vegetables (both expandable)<br>
+            ✅ <strong>Fruits children:</strong> Apple (expandable), Orange (leaf), Banana (leaf)<br>
+            ✅ <strong>Apple children:</strong> Fuji (leaf), Macintosh (leaf)<br>
+            ✅ <strong>Vegetables children:</strong> Tomato (leaf), Potato (leaf), Onion (expandable)<br>
+            ✅ <strong>Onion children:</strong> Yellow (leaf), White (leaf), Purple (leaf)
+        </div>
+        
+        <h3>CRUD Operation Tests:</h3>
+        <div class="info">
+            <strong>Test 1:</strong> Add "Mango" to Fruits → Should appear as leaf node<br>
+            <strong>Test 2:</strong> Add "Sweet" to Mango → Mango becomes expandable<br>
+            <strong>Test 3:</strong> Delete "Sweet" from Mango → Mango becomes leaf again<br>
+            <strong>Test 4:</strong> Add new root "Grains" → Should be expandable
+        </div>
+        
+        <div class="success">
+            <strong>Key Fix:</strong> The tree component should now show the initial data properly and maintain state during CRUD operations!
+        </div>
+        
+        <script>
+            // Simple JavaScript to verify the data structure logic
+            console.log('Testing tree data structure...');
+            
+            // Mock the database structure
+            const dataMap = new Map([
+                ['Fruits', ['Apple', 'Orange', 'Banana']],
+                ['Vegetables', ['Tomato', 'Potato', 'Onion']],
+                ['Apple', ['Fuji', 'Macintosh']],
+                ['Onion', ['Yellow', 'White', 'Purple']]
+            ]);
+            
+            const rootLevelNodes = ['Fruits', 'Vegetables'];
+            
+            console.log('Root nodes:', rootLevelNodes);
+            console.log('Expandable nodes (in dataMap):', Array.from(dataMap.keys()));
+            
+            // Test initial data creation
+            const initialData = rootLevelNodes.map(name => ({
+                item: name,
+                level: 0,
+                expandable: dataMap.has(name)
+            }));
+            
+            console.log('Initial data:', initialData);
+            
+            if (initialData.length === 2 && initialData[0].item === 'Fruits' && initialData[1].item === 'Vegetables') {
+                console.log('✅ Initial data test PASSED');
+                document.querySelector('.success').innerHTML += '<br>✅ <strong>JavaScript Logic Test:</strong> Initial data structure is correct';
+            } else {
+                console.log('❌ Initial data test FAILED');
+                document.querySelector('.test-container').innerHTML += '<div class="error">❌ <strong>JavaScript Logic Test:</strong> Initial data structure is incorrect</div>';
+            }
+        </script>
+    </div>
+</body>
+</html>

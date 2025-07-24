@@ -1,0 +1,98 @@
+<div class="tree-container"> 
+  
+  <!-- Debug Information -->
+  <div style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
+    <h4>Debug Info:</h4>
+    <p>Data Source Connected: {{ dataSource ? 'Yes' : 'No' }}</p>
+    <p>Tree Control: {{ treeControl ? 'Yes' : 'No' }}</p>
+    <p>Current Data Length: {{ dataSource?.data?.length || 0 }}</p>
+    <p>Data: {{ dataSource?.data | json }}</p>
+  </div>
+
+  <div class="filter-section">
+    <mat-form-field class="example-filter">
+      <mat-label>Filter</mat-label>
+      <input matInput #filterInput (keyup)="applyFilter(filterInput.value)" placeholder="Search item">
+    </mat-form-field>
+    
+    <button mat-raised-button color="primary" (click)="addRootNode()" class="add-root-btn">
+      <mat-icon>add</mat-icon>
+      Add Root Node
+    </button>
+  </div>
+
+  <!-- Simplified Tree for Debugging -->
+  <div style="border: 2px solid red; padding: 10px; margin: 10px 0;">
+    <h4>Manual Debug Tree:</h4>
+    <div *ngFor="let node of dataSource?.data" style="padding: 5px; border: 1px solid blue; margin: 2px;">
+      Level {{ node.level }}: {{ node.item }} ({{ node.expandable ? 'expandable' : 'leaf' }})
+    </div>
+  </div>
+
+  <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="example-tree">
+    <!-- Leaf nodes - NOW WITH ADD CHILD BUTTON -->
+    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+      <button mat-icon-button disabled></button>
+      <span class="node-content">{{node.item}}</span>
+      
+      <div class="node-actions">
+        <!-- ADD CHILD BUTTON FOR LEAF NODES -->
+        <button mat-icon-button 
+                (click)="addChildNode(node)"
+                class="action-btn add-btn"
+                matTooltip="Add Child">
+          <mat-icon>add</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="editNode(node)"
+                class="action-btn edit-btn"
+                matTooltip="Rename">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="deleteNode(node)"
+                class="action-btn delete-btn"
+                matTooltip="Delete">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </mat-tree-node>
+
+    <!-- Parent nodes (nodes with children) -->
+    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+      <button mat-icon-button
+              [attr.aria-label]="'Toggle ' + node.item" 
+              matTreeNodeToggle>
+        <mat-icon class="mat-icon-rtl-mirror">
+          {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+        </mat-icon>
+      </button>
+      <span class="node-content">{{node.item}}</span>
+
+      <div class="node-actions">
+        <button mat-icon-button 
+                (click)="addChildNode(node)"
+                class="action-btn add-btn"
+                matTooltip="Add Child">
+          <mat-icon>add</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="editNode(node)"
+                class="action-btn edit-btn"
+                matTooltip="Rename">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button 
+                (click)="deleteNode(node)"
+                class="action-btn delete-btn"
+                matTooltip="Delete">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+      
+      <mat-progress-bar *ngIf="node.isLoading"
+                        mode="indeterminate"
+                        class="example-tree-progress-bar"></mat-progress-bar>
+    </mat-tree-node>
+  </mat-tree>
+</div>

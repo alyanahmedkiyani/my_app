@@ -1,6 +1,7 @@
 import {CollectionViewer, SelectionChange, DataSource} from '@angular/cdk/collections';
 import {FlatTreeControl} from '@angular/cdk/tree';
 import {Component, Injectable} from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -55,7 +56,10 @@ export class DynamicDatabase {
 
   /** Initial data from database */
   initialData(): DynamicFlatNode[] {
-    return this.rootLevelNodes.map(name => new DynamicFlatNode(name, 0, true));
+    console.log('initialData called, rootLevelNodes:', this.rootLevelNodes);
+    const result = this.rootLevelNodes.map(name => new DynamicFlatNode(name, 0, true));
+    console.log('initialData result:', result);
+    return result;
   }
 
   getChildren(node: string): string[] | undefined {
@@ -262,18 +266,24 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     private _treeControl: FlatTreeControl<DynamicFlatNode>,
     private _database: DynamicDatabase,
   ) {
+    console.log('DynamicDataSource constructor called');
+    console.log('Database root nodes:', this._database.rootLevelNodes);
+    console.log('Database dataMap:', this._database.dataMap);
     this.refreshData();
+    console.log('After refreshData - current data:', this.data);
   }
 
   // Refresh data from database and reapply filter while preserving expansion state
   refreshData() {
-    // Store currently expanded nodes
+    // Store currently expanded nodes (only if tree control has data)
     const expandedNodeItems = new Set<string>();
-    this._treeControl.dataNodes.forEach(node => {
-      if (this._treeControl.isExpanded(node)) {
-        expandedNodeItems.add(node.item);
-      }
-    });
+    if (this._treeControl.dataNodes && this._treeControl.dataNodes.length > 0) {
+      this._treeControl.dataNodes.forEach(node => {
+        if (this._treeControl.isExpanded(node)) {
+          expandedNodeItems.add(node.item);
+        }
+      });
+    }
 
     this._fullData = this._database.getAllNodes();
     if (this._currentFilter) {
@@ -282,20 +292,24 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       this.data = this._database.initialData();
     }
 
-    // Restore expansion state
-    this.restoreExpansionState(expandedNodeItems);
+    // Restore expansion state only if we had previous state
+    if (expandedNodeItems.size > 0) {
+      this.restoreExpansionState(expandedNodeItems);
+    }
   }
 
   // Helper method to restore expansion state
   private restoreExpansionState(expandedNodeItems: Set<string>) {
     // Wait for the next tick to ensure data is fully updated
     setTimeout(() => {
-      this._treeControl.dataNodes.forEach(node => {
-        if (expandedNodeItems.has(node.item) && node.expandable) {
-          this._treeControl.expand(node);
-        }
-      });
-    }, 0);
+      if (this._treeControl.dataNodes && this._treeControl.dataNodes.length > 0) {
+        this._treeControl.dataNodes.forEach(node => {
+          if (expandedNodeItems.has(node.item) && node.expandable) {
+            this._treeControl.expand(node);
+          }
+        });
+      }
+    }, 10);
   }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
@@ -368,16 +382,20 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     if (!filterText) {
       // If filter is empty, restore initial root data but preserve expansion state
       const expandedNodeItems = new Set<string>();
-      this._treeControl.dataNodes.forEach(node => {
-        if (this._treeControl.isExpanded(node)) {
-          expandedNodeItems.add(node.item);
-        }
-      });
+      if (this._treeControl.dataNodes && this._treeControl.dataNodes.length > 0) {
+        this._treeControl.dataNodes.forEach(node => {
+          if (this._treeControl.isExpanded(node)) {
+            expandedNodeItems.add(node.item);
+          }
+        });
+      }
 
       this.data = this._database.initialData(); // This calls the setter, which calls dataChange.next()
       
-      // Restore expansion state instead of collapsing all
-      this.restoreExpansionState(expandedNodeItems);
+      // Restore expansion state instead of collapsing all (only if we had previous state)
+      if (expandedNodeItems.size > 0) {
+        this.restoreExpansionState(expandedNodeItems);
+      }
       return;
     }
 
@@ -453,6 +471,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 // Dialog Components
 @Component({
   selector: 'node-dialog',
+  standalone: true,
   template: `
     <h2 mat-dialog-title>{{data.title}}</h2>
     <mat-dialog-content>
@@ -487,24 +506,30 @@ export class NodeDialogComponent {
 
 @Component({
   selector: 'tree-dynamic-example',
-  templateUrl: './tree.html',
+  templateUrl: './tree-debug.html',
   styleUrls: ['./tree.css'],
+  standalone: true,
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
-    MatButtonModule, MatTooltipModule, MatDialogModule
+    MatButtonModule, MatTooltipModule, MatDialogModule,
+    CommonModule
   ]
 })
 export class Tree { // Renamed from TreeDynamicExample to Tree as per your import
+  treeControl: FlatTreeControl<DynamicFlatNode>;
+  dataSource: DynamicDataSource;
+
   constructor(
     private database: DynamicDatabase,
     private dialog: MatDialog
   ) {
     this.treeControl = new FlatTreeControl<DynamicFlatNode>(this.getLevel, this.isExpandable);
     this.dataSource = new DynamicDataSource(this.treeControl, database);
+    
+    // Ensure initial data is loaded
+    console.log('Tree component initialized');
+    console.log('Initial data:', this.dataSource.data);
   }
-
-  treeControl: FlatTreeControl<DynamicFlatNode>;
-  dataSource: DynamicDataSource;
 
   getLevel = (node: DynamicFlatNode) => node.level;
   isExpandable = (node: DynamicFlatNode) => node.expandable;
