@@ -249,6 +249,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
   private _fullData: DynamicFlatNode[] = []; // Stores the complete, unfiltered data
   private _currentFilter: string = ''; // Store current filter to reapply after CRUD operations
+  private _isRestoringState = false; // Flag to prevent toggleNode during state restoration
 
   get data(): DynamicFlatNode[] {
     return this.dataChange.value;
@@ -298,10 +299,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   private restoreExpansionState(expandedItems: Set<string>) {
     if (expandedItems.size === 0) return;
 
+    // Set flag to prevent toggleNode interference
+    this._isRestoringState = true;
+
     // Build the complete expanded tree structure
     const expandedData: DynamicFlatNode[] = [];
     const processedNodes = new Set<string>();
-    const nodesToExpandInControl: DynamicFlatNode[] = [];
 
     // Helper function to add node and its children if expanded
     const addNodeWithChildren = (item: string, level: number) => {
@@ -310,11 +313,6 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
       const node = new DynamicFlatNode(item, level, this._database.isExpandable(item));
       expandedData.push(node);
-
-      // Track nodes that should be expanded in the tree control
-      if (expandedItems.has(item) && node.expandable) {
-        nodesToExpandInControl.push(node);
-      }
 
       // If this node was expanded, add its children
       if (expandedItems.has(item)) {
@@ -335,11 +333,21 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // Update the data with the expanded structure
     this.data = expandedData;
 
-    // Set the expansion state in the tree control
-    // The expansion model is already cleared in refreshData()
-    nodesToExpandInControl.forEach(node => {
-      this._treeControl.expansionModel.select(node);
-    });
+    // Restore the expansion state in the tree control
+    setTimeout(() => {
+      expandedData.forEach(node => {
+        if (expandedItems.has(node.item) && node.expandable) {
+          // Directly set expansion state without triggering toggleNode
+          this._treeControl.expansionModel.select(node);
+        }
+      });
+      
+      // Clear the restoration flag
+      this._isRestoringState = false;
+      
+      // Force a change detection cycle to update the UI
+      this.dataChange.next([...this.data]);
+    }, 100);
   }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
@@ -374,6 +382,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 //    * Toggle the node, remove from display list
 
   toggleNode(node: DynamicFlatNode, expand: boolean) {
+    // Don't process toggleNode if we're currently restoring state
+    if (this._isRestoringState) {
+      return;
+    }
+
     const childrenItems = this._database.getChildren(node.item);
     const index = this.data.indexOf(node);
 
