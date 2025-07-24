@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Inject } from '@angular/core';
+import { CdkDragDrop, moveItemInArray, transferArrayItem, CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
 
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -256,6 +257,72 @@ export class DynamicDatabase {
     }
     return null;
   }
+
+  // Move node from one parent to another (for drag and drop)
+  moveNode(nodeName: string, newParent: string | null, insertIndex?: number): boolean {
+    // Prevent moving a node into its own descendant
+    if (newParent && this.isDescendant(newParent, nodeName)) {
+      return false;
+    }
+
+    // Remove from current parent
+    const currentParent = this.getParent(nodeName);
+    if (currentParent) {
+      const currentChildren = this.dataMap.get(currentParent);
+      if (currentChildren) {
+        const index = currentChildren.indexOf(nodeName);
+        if (index !== -1) {
+          currentChildren.splice(index, 1);
+        }
+      }
+    } else {
+      // Remove from root level
+      const rootIndex = this.rootLevelNodes.indexOf(nodeName);
+      if (rootIndex !== -1) {
+        this.rootLevelNodes.splice(rootIndex, 1);
+      }
+    }
+
+    // Add to new parent
+    if (newParent === null) {
+      // Add to root level
+      if (insertIndex !== undefined && insertIndex >= 0) {
+        this.rootLevelNodes.splice(insertIndex, 0, nodeName);
+      } else {
+        this.rootLevelNodes.push(nodeName);
+      }
+    } else {
+      // Add to new parent's children
+      let children = this.dataMap.get(newParent);
+      if (!children) {
+        children = [];
+        this.dataMap.set(newParent, children);
+      }
+      if (insertIndex !== undefined && insertIndex >= 0) {
+        children.splice(insertIndex, 0, nodeName);
+      } else {
+        children.push(nodeName);
+      }
+    }
+
+    return true;
+  }
+
+  // Check if a node is a descendant of another node
+  private isDescendant(potentialDescendant: string, ancestorNode: string): boolean {
+    const descendants = this.getDescendants(ancestorNode);
+    return descendants.has(potentialDescendant);
+  }
+
+  // Get siblings of a node (nodes at the same level with same parent)
+  getSiblings(nodeName: string): string[] {
+    const parent = this.getParent(nodeName);
+    if (parent) {
+      return this.dataMap.get(parent) || [];
+    } else {
+      return this.rootLevelNodes;
+    }
+  }
 }
 
 /**
@@ -477,6 +544,15 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }
     return success;
   }
+
+  // Drag and drop operation
+  moveNode(nodeName: string, newParent: string | null, insertIndex?: number): boolean {
+    const success = this._database.moveNode(nodeName, newParent, insertIndex);
+    if (success) {
+      this.refreshData();
+    }
+    return success;
+  }
 }
 
 // Dialog Components
@@ -508,7 +584,7 @@ export class NodeDialogComponent {
   standalone: true,
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
-    MatButtonModule, MatTooltipModule, MatDialogModule
+    MatButtonModule, MatTooltipModule, MatDialogModule, DragDropModule
   ]
 })
 export class Tree { // Renamed from TreeDynamicExample to Tree as per your import
@@ -601,6 +677,61 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
         callback(result);
       }
     });
+  }
+
+  // Drag and Drop functionality
+  onDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
+    const draggedNode = event.item.data as DynamicFlatNode;
+    const dropContainer = event.container.data[0] as DynamicFlatNode;
+    
+    // Prevent dropping into own descendants
+    if (this.isInvalidDrop(draggedNode, dropContainer)) {
+      this.showMessage(`Cannot move "${draggedNode.item}" into its own descendant.`);
+      return;
+    }
+
+    // Move the node to the new parent
+    const success = this.dataSource.moveNode(draggedNode.item, dropContainer.item, 0);
+    
+    if (success) {
+      this.showMessage(`"${draggedNode.item}" moved to "${dropContainer.item}" successfully.`);
+      // Expand the new parent to show the moved node
+      setTimeout(() => {
+        const updatedParent = this.treeControl.dataNodes.find(node => node.item === dropContainer.item);
+        if (updatedParent) {
+          this.treeControl.expand(updatedParent);
+        }
+      }, 100);
+    } else {
+      this.showMessage(`Failed to move "${draggedNode.item}".`);
+    }
+  }
+
+  // Check if the drop is invalid (dropping into own descendant)
+  private isInvalidDrop(draggedNode: DynamicFlatNode, dropTarget: DynamicFlatNode): boolean {
+    const descendants = this.database.getDescendants(draggedNode.item);
+    return descendants.has(dropTarget.item);
+  }
+
+
+
+  // Get drop list id for a node
+  getDropListId(node: DynamicFlatNode): string {
+    return `drop-list-${node.id}`;
+  }
+
+  // Handle dropping on root level
+  onRootDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
+    const draggedNode = event.item.data as DynamicFlatNode;
+    
+    // Move the node to root level
+    const success = this.dataSource.moveNode(draggedNode.item, null, 0);
+    
+    if (success) {
+      this.showMessage(`"${draggedNode.item}" moved to root level successfully.`);
+    } else {
+      this.showMessage(`Failed to move "${draggedNode.item}" to root level.`);
+    }
   }
 
   private showMessage(message: string) {

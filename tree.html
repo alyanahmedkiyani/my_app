@@ -13,73 +13,120 @@
     </button>
   </div>
 
-  <!-- Tree -->
-  <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="example-tree">
-    <!-- Leaf nodes -->
-    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
-      <button mat-icon-button disabled></button>
-      <span class="node-content">{{node.item}}</span>
-      
-      <!-- Direct CRUD Action Buttons -->
-      <div class="node-actions">
-        <button mat-icon-button 
-                (click)="addChildNode(node)"
-                class="action-btn add-btn"
-                matTooltip="Add Child">
-          <mat-icon>add</mat-icon>
-        </button>
-        <button mat-icon-button 
-                (click)="editNode(node)"
-                class="action-btn edit-btn"
-                matTooltip="Rename">
-          <mat-icon>edit</mat-icon>
-        </button>
-        <button mat-icon-button 
-                (click)="deleteNode(node)"
-                class="action-btn delete-btn"
-                matTooltip="Delete">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </div>
-    </mat-tree-node>
+  <!-- Tree with Drag and Drop -->
+  <div cdkDropListGroup class="example-tree">
+    <!-- Root drop zone -->
+    <div cdkDropList 
+         id="root-drop-zone"
+         [cdkDropListData]="[]"
+         (cdkDropListDropped)="onRootDrop($event)"
+         class="root-drop-zone">
+      <div class="root-drop-indicator">Drop here to move to root level</div>
+    </div>
+    
+    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+      <!-- Leaf nodes -->
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding 
+                     cdkDropList
+                     [cdkDropListData]="[node]"
+                     [id]="getDropListId(node)"
+                     (cdkDropListDropped)="onDrop($event)"
+                     class="tree-node-container">
+        
+        <div cdkDrag 
+             [cdkDragData]="node" 
+             class="tree-node-item">
+          
+          <div class="drag-handle" cdkDragHandle>
+            <mat-icon>drag_indicator</mat-icon>
+          </div>
+          
+          <button mat-icon-button disabled></button>
+          <span class="node-content">{{node.item}}</span>
+          
+          <!-- Direct CRUD Action Buttons -->
+          <div class="node-actions">
+            <button mat-icon-button 
+                    (click)="addChildNode(node)"
+                    class="action-btn add-btn"
+                    matTooltip="Add Child">
+              <mat-icon>add</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="editNode(node)"
+                    class="action-btn edit-btn"
+                    matTooltip="Rename">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="deleteNode(node)"
+                    class="action-btn delete-btn"
+                    matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Drop zone indicator -->
+        <div class="drop-zone-indicator"></div>
+      </mat-tree-node>
 
-    <!-- Parent nodes -->
-    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
-      <button mat-icon-button
-              [attr.aria-label]="'Toggle ' + node.item" 
-              matTreeNodeToggle>
-        <mat-icon class="mat-icon-rtl-mirror">
-          {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
-        </mat-icon>
-      </button>
-      <span class="node-content">{{node.item}}</span>
-      
-      <!-- Direct CRUD Action Buttons -->
-      <div class="node-actions">
-        <button mat-icon-button 
-                (click)="addChildNode(node)"
-                class="action-btn add-btn"
-                matTooltip="Add Child">
-          <mat-icon>add</mat-icon>
-        </button>
-        <button mat-icon-button 
-                (click)="editNode(node)"
-                class="action-btn edit-btn"
-                matTooltip="Rename">
-          <mat-icon>edit</mat-icon>
-        </button>
-        <button mat-icon-button 
-                (click)="deleteNode(node)"
-                class="action-btn delete-btn"
-                matTooltip="Delete">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </div>
-      
-      <mat-progress-bar *ngIf="node.isLoading"
-                        mode="indeterminate"
-                        class="example-tree-progress-bar"></mat-progress-bar>
-    </mat-tree-node>
-  </mat-tree>
+      <!-- Parent nodes -->
+      <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding
+                     cdkDropList
+                     [cdkDropListData]="[node]"
+                     [id]="getDropListId(node)"
+                     (cdkDropListDropped)="onDrop($event)"
+                     class="tree-node-container">
+        
+        <div cdkDrag 
+             [cdkDragData]="node" 
+             class="tree-node-item">
+          
+          <div class="drag-handle" cdkDragHandle>
+            <mat-icon>drag_indicator</mat-icon>
+          </div>
+          
+          <button mat-icon-button
+                  [attr.aria-label]="'Toggle ' + node.item" 
+                  matTreeNodeToggle>
+            <mat-icon class="mat-icon-rtl-mirror">
+              {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+            </mat-icon>
+          </button>
+          <span class="node-content">{{node.item}}</span>
+          
+          <!-- Direct CRUD Action Buttons -->
+          <div class="node-actions">
+            <button mat-icon-button 
+                    (click)="addChildNode(node)"
+                    class="action-btn add-btn"
+                    matTooltip="Add Child">
+              <mat-icon>add</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="editNode(node)"
+                    class="action-btn edit-btn"
+                    matTooltip="Rename">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="deleteNode(node)"
+                    class="action-btn delete-btn"
+                    matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          
+          <mat-progress-bar *ngIf="node.isLoading"
+                            mode="indeterminate"
+                            class="example-tree-progress-bar"></mat-progress-bar>
+        </div>
+        
+        <!-- Drop zone indicator -->
+        <div class="drop-zone-indicator"></div>
+      </mat-tree-node>
+    </mat-tree>
+  </div>
 </div>
 

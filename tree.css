@@ -216,3 +216,197 @@
   opacity: 1;
 }
 
+/* Drag and Drop Styles */
+.tree-node-container {
+  position: relative;
+  border-radius: 4px;
+}
+
+.tree-node-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background: white;
+  border: 1px solid transparent;
+}
+
+.tree-node-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  border-left-color: #1976d2;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  cursor: grab;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+  border-radius: 2px;
+}
+
+.tree-node-item:hover .drag-handle {
+  opacity: 0.7;
+}
+
+.drag-handle:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle .mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #666;
+}
+
+/* Drop zone indicator */
+.drop-zone-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.tree-node-container.cdk-drop-list-receiving .drop-zone-indicator {
+  background-color: #1976d2;
+}
+
+/* Dragging states */
+.cdk-drag-preview {
+  background: white;
+  border: 1px solid #1976d2;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
+  transform: rotate(5deg);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  background: #f0f0f0;
+  border: 2px dashed #ccc;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.tree-node-container.cdk-drop-list-receiving {
+  background-color: rgba(25, 118, 210, 0.1);
+  border: 2px dashed #1976d2;
+  border-radius: 4px;
+}
+
+.tree-node-container.cdk-drop-list-receiving .tree-node-item {
+  opacity: 0.7;
+}
+
+/* Invalid drop indicator */
+.cdk-drag-preview.invalid-drop {
+  background-color: #ffebee;
+  border-color: #f44336;
+  color: #f44336;
+}
+
+/* Drop position indicators */
+.drop-above {
+  border-top: 3px solid #1976d2;
+  border-radius: 0;
+}
+
+.drop-below {
+  border-bottom: 3px solid #1976d2;
+  border-radius: 0;
+}
+
+.drop-inside {
+  background-color: rgba(25, 118, 210, 0.1);
+  border: 2px dashed #1976d2;
+}
+
+/* Responsive drag handle */
+@media (max-width: 600px) {
+  .drag-handle {
+    opacity: 0.7;
+  }
+  
+  .drag-handle .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Accessibility */
+.drag-handle:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* Animation for successful drops */
+@keyframes dropSuccess {
+  0% {
+    transform: scale(1);
+    background-color: rgba(76, 175, 80, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    background-color: rgba(76, 175, 80, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+.drop-success {
+  animation: dropSuccess 0.6s ease-out;
+}
+
+/* Root drop zone */
+.root-drop-zone {
+  min-height: 40px;
+  margin-bottom: 10px;
+  border: 2px dashed transparent;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.root-drop-zone.cdk-drop-list-receiving {
+  border-color: #1976d2;
+  background-color: rgba(25, 118, 210, 0.05);
+}
+
+.root-drop-indicator {
+  display: none;
+  text-align: center;
+  padding: 8px;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.root-drop-zone.cdk-drop-list-receiving .root-drop-indicator {
+  display: block;
+  color: #1976d2;
+  font-weight: 500;
+}
+
