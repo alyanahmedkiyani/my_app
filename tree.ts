@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import {BehaviorSubject, merge, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 
 // Interface for dialog data
 export interface DialogData {
@@ -242,6 +243,70 @@ export class DynamicDatabase {
       }
     }
     return null;
+  }
+
+  // Move node to a new parent (for drag and drop)
+  moveNode(nodeToMove: string, newParent: string | null, newIndex?: number): boolean {
+    // Don't allow moving a node to itself or its descendants
+    if (nodeToMove === newParent) {
+      return false;
+    }
+    
+    // Check if newParent is a descendant of nodeToMove (would create a cycle)
+    if (newParent) {
+      const descendants = this.getDescendants(nodeToMove);
+      if (descendants.has(newParent)) {
+        return false;
+      }
+    }
+
+    // Remove from current parent
+    const currentParent = this.getParent(nodeToMove);
+    if (currentParent) {
+      const siblings = this.dataMap.get(currentParent);
+      if (siblings) {
+        const index = siblings.indexOf(nodeToMove);
+        if (index !== -1) {
+          siblings.splice(index, 1);
+          
+          // If parent has no children left and it's not a root node, remove it from dataMap
+          if (siblings.length === 0 && !this.rootLevelNodes.includes(currentParent)) {
+            this.dataMap.delete(currentParent);
+          }
+        }
+      }
+    } else {
+      // Remove from root level
+      const index = this.rootLevelNodes.indexOf(nodeToMove);
+      if (index !== -1) {
+        this.rootLevelNodes.splice(index, 1);
+      }
+    }
+
+    // Add to new parent
+    if (newParent === null) {
+      // Moving to root level
+      if (newIndex !== undefined && newIndex >= 0) {
+        this.rootLevelNodes.splice(newIndex, 0, nodeToMove);
+      } else {
+        this.rootLevelNodes.push(nodeToMove);
+      }
+    } else {
+      // Moving to a new parent
+      let children = this.dataMap.get(newParent);
+      if (!children) {
+        children = [];
+        this.dataMap.set(newParent, children);
+      }
+      
+      if (newIndex !== undefined && newIndex >= 0) {
+        children.splice(newIndex, 0, nodeToMove);
+      } else {
+        children.push(nodeToMove);
+      }
+    }
+
+    return true;
   }
 }
 
@@ -587,12 +652,21 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       return;
     }
 
-    // Restore expansion state using the preserved structure
-    this.restoreExpansionState(expandedItems, currentVisibleItems);
-  }
-}
+         // Restore expansion state using the preserved structure
+     this.restoreExpansionState(expandedItems, currentVisibleItems);
+   }
 
-// Dialog Components
+   // Move node operation for drag and drop
+   moveNode(nodeToMove: string, newParent: string | null, newIndex?: number): boolean {
+     const success = this._database.moveNode(nodeToMove, newParent, newIndex);
+     if (success) {
+       this.refreshData();
+     }
+     return success;
+   }
+ }
+ 
+ // Dialog Components
 @Component({
   selector: 'node-dialog',
   template: `
@@ -633,7 +707,7 @@ export class NodeDialogComponent {
   styleUrls: ['./tree.css'],
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
-    MatButtonModule, MatTooltipModule, MatDialogModule
+    MatButtonModule, MatTooltipModule, MatDialogModule, DragDropModule
   ]
 })
 export class Tree { // Renamed from TreeDynamicExample to Tree as per your import
@@ -654,6 +728,69 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
 
   applyFilter(filterText: string) {
     this.dataSource.filter(filterText.trim());
+  }
+
+  // Drag and Drop functionality
+  onDrop(event: CdkDragDrop<DynamicFlatNode[]>) {
+    const draggedNode = event.item.data as DynamicFlatNode;
+    const targetContainer = event.container.data;
+    
+    if (event.previousContainer === event.container) {
+      // Reordering within the same level
+      const targetNode = targetContainer[event.currentIndex];
+      const draggedParent = this.database.getParent(draggedNode.item);
+      
+      if (targetNode) {
+        const targetParent = this.database.getParent(targetNode.item);
+        
+        // Only allow reordering if they have the same parent
+        if (draggedParent === targetParent) {
+          this.dataSource.moveNode(draggedNode.item, draggedParent, event.currentIndex);
+          this.showMessage(`Moved "${draggedNode.item}" within the same level`);
+        }
+      }
+    } else {
+      // Moving to a different level/parent
+      this.handleCrossContainerDrop(event, draggedNode);
+    }
+  }
+
+  private handleCrossContainerDrop(event: CdkDragDrop<DynamicFlatNode[]>, draggedNode: DynamicFlatNode) {
+    // For now, we'll handle simple cases
+    // You can extend this to handle more complex drop scenarios
+    this.showMessage(`Cross-container drop not yet implemented for "${draggedNode.item}"`);
+  }
+
+  // Check if a node can be dropped on another node
+  canDrop(draggedNode: DynamicFlatNode, targetNode: DynamicFlatNode): boolean {
+    // Don't allow dropping on itself
+    if (draggedNode.item === targetNode.item) {
+      return false;
+    }
+    
+    // Don't allow dropping a parent on its descendant (would create a cycle)
+    const descendants = this.database.getDescendants(draggedNode.item);
+    return !descendants.has(targetNode.item);
+  }
+
+  // Drop a node onto another node (make it a child)
+  dropOnNode(draggedNode: DynamicFlatNode, targetNode: DynamicFlatNode) {
+    if (this.canDrop(draggedNode, targetNode)) {
+      const success = this.dataSource.moveNode(draggedNode.item, targetNode.item);
+      if (success) {
+        this.showMessage(`Moved "${draggedNode.item}" under "${targetNode.item}"`);
+        
+        // Expand the target node to show the new child
+        setTimeout(() => {
+          const updatedTargetNode = this.dataSource.data.find(node => node.item === targetNode.item);
+          if (updatedTargetNode && updatedTargetNode.expandable) {
+            this.treeControl.expand(updatedTargetNode);
+          }
+        }, 150);
+      } else {
+        this.showMessage(`Cannot move "${draggedNode.item}" under "${targetNode.item}"`);
+      }
+    }
   }
 
   // CRUD Operations
