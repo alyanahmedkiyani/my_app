@@ -283,7 +283,10 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     private _treeControl: FlatTreeControl<DynamicFlatNode>,
     private _database: DynamicDatabase,
   ) {
-    this.refreshData();
+    // Initialize _fullData with all possible nodes from the database
+    this._fullData = this._database.getAllNodes();
+    // Set initial data. The setter will call dataChange.next()
+    this.data = this._database.initialData();
   }
 
   // Save current expansion state
@@ -498,6 +501,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       width: 100%;
     }
   `],
+  standalone: true,
   imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule]
 })
 export class NodeDialogComponent {
@@ -516,8 +520,94 @@ export class NodeDialogComponent {
  */
 @Component({
   selector: 'tree-dynamic-example',
-  templateUrl: './tree.html',
+  template: `
+    <div class="tree-container">
+      <!-- Filter Section -->
+      <div class="filter-section">
+        <mat-form-field class="example-filter">
+          <mat-label>Filter</mat-label>
+          <input matInput #filterInput (keyup)="applyFilter(filterInput.value)" placeholder="Search item">
+        </mat-form-field>
+        
+        <!-- Add Root Node Button -->
+        <button mat-raised-button color="primary" (click)="addRootNode()" class="add-root-btn">
+          <mat-icon>add</mat-icon>
+          Add Root Node
+        </button>
+      </div>
+
+      <!-- Tree -->
+      <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="example-tree">
+        <!-- Leaf nodes -->
+        <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+          <button mat-icon-button disabled></button>
+          <span class="node-content">{{node.item}}</span>
+          
+          <!-- Direct CRUD Action Buttons -->
+          <div class="node-actions">
+            <button mat-icon-button 
+                    (click)="addChildNode(node)"
+                    class="action-btn add-btn"
+                    matTooltip="Add Child">
+              <mat-icon>add</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="editNode(node)"
+                    class="action-btn edit-btn"
+                    matTooltip="Rename">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="deleteNode(node)"
+                    class="action-btn delete-btn"
+                    matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </mat-tree-node>
+
+        <!-- Parent nodes -->
+        <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+          <button mat-icon-button
+                  [attr.aria-label]="'Toggle ' + node.item" 
+                  matTreeNodeToggle>
+            <mat-icon class="mat-icon-rtl-mirror">
+              {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+            </mat-icon>
+          </button>
+          <span class="node-content">{{node.item}}</span>
+          
+          <!-- Direct CRUD Action Buttons -->
+          <div class="node-actions">
+            <button mat-icon-button 
+                    (click)="addChildNode(node)"
+                    class="action-btn add-btn"
+                    matTooltip="Add Child">
+              <mat-icon>add</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="editNode(node)"
+                    class="action-btn edit-btn"
+                    matTooltip="Rename">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button 
+                    (click)="deleteNode(node)"
+                    class="action-btn delete-btn"
+                    matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          
+          <mat-progress-bar *ngIf="node.isLoading"
+                            mode="indeterminate"
+                            class="example-tree-progress-bar"></mat-progress-bar>
+        </mat-tree-node>
+      </mat-tree>
+    </div>
+  `,
   styleUrls: ['./tree.css'],
+  standalone: true,
   imports: [MatFormFieldModule, MatIconModule,
     MatTreeModule, MatProgressBarModule, MatInputModule,
     MatButtonModule, MatTooltipModule, MatDialogModule

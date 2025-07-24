@@ -8,10 +8,10 @@ import { Tree } from './tree';
       <h1>Angular Material Tree with CRUD Operations</h1>
       <p>This tree component supports full CRUD operations while maintaining perfect filter functionality:</p>
       <ul>
-        <li><strong>Create:</strong> Add root nodes or child nodes using the "Add Root Node" button or context menu</li>
+        <li><strong>Create:</strong> Add root nodes or child nodes using the action buttons</li>
         <li><strong>Read:</strong> View and expand/collapse nodes</li>
-        <li><strong>Update:</strong> Rename nodes using the context menu</li>
-        <li><strong>Delete:</strong> Remove nodes and their children using the context menu</li>
+        <li><strong>Update:</strong> Rename nodes using the edit button</li>
+        <li><strong>Delete:</strong> Remove nodes and their children using the delete button</li>
         <li><strong>Filter:</strong> Search through all nodes while preserving the tree structure</li>
       </ul>
       
@@ -49,6 +49,7 @@ import { Tree } from './tree';
       color: #1976d2;
     }
   `],
+  standalone: true,
   imports: [Tree]
 })
 export class AppComponent {

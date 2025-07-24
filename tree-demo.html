@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular Material Tree with CRUD Operations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        
+        .feature-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .feature-list h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        
+        .feature-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .feature-list li {
+            margin-bottom: 8px;
+        }
+        
+        .feature-list strong {
+            color: #1976d2;
+        }
+        
+        .demo-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .demo-tree {
+            font-family: 'Roboto', sans-serif;
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 300px;
+        }
+        
+        .tree-node {
+            display: flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .tree-node:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            border-left-color: #1976d2;
+        }
+        
+        .node-content {
+            flex: 1;
+            margin-right: 8px;
+            padding: 8px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .node-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            margin-left: 8px;
+        }
+        
+        .tree-node:hover .node-actions {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .add-btn {
+            color: #4caf50;
+        }
+        
+        .add-btn:hover {
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .edit-btn {
+            color: #2196f3;
+        }
+        
+        .edit-btn:hover {
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+        
+        .delete-btn {
+            color: #f44336;
+        }
+        
+        .delete-btn:hover {
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+        
+        .expand-btn {
+            color: #666;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            margin-right: 8px;
+        }
+        
+        .material-icons {
+            font-size: 16px;
+        }
+        
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .add-root-btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .add-root-btn:hover {
+            background: #1565c0;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box p {
+            margin: 0;
+            color: #1976d2;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌳 Angular Material Tree with CRUD Operations</h1>
+        
+        <div class="feature-list">
+            <h3>✨ Features Implemented</h3>
+            <ul>
+                <li><strong>Create:</strong> Add root nodes and child nodes to any node</li>
+                <li><strong>Read:</strong> View and expand/collapse tree structure</li>
+                <li><strong>Update:</strong> Rename any node with validation</li>
+                <li><strong>Delete:</strong> Remove nodes and their children with confirmation</li>
+                <li><strong>Filter:</strong> Search through all nodes while preserving tree hierarchy</li>
+                <li><strong>State Preservation:</strong> Tree maintains expansion state during all operations</li>
+                <li><strong>Universal Child Addition:</strong> Every node can become a parent</li>
+            </ul>
+        </div>
+        
+        <div class="info-box">
+            <p><strong>Note:</strong> This is a visual representation of the Angular Material Tree component. The actual implementation includes full CRUD functionality with Angular Material components, dialogs, and state management.</p>
+        </div>
+        
+        <div class="demo-section">
+            <h3>Tree Component Demo</h3>
+            
+            <div class="filter-section">
+                <input type="text" class="filter-input" placeholder="Search items..." />
+                <button class="add-root-btn">
+                    <span class="material-icons">add</span>
+                    Add Root Node
+                </button>
+            </div>
+            
+            <div class="demo-tree">
+                <!-- Fruits Node -->
+                <div class="tree-node">
+                    <button class="expand-btn">
+                        <span class="material-icons">expand_more</span>
+                    </button>
+                    <span class="node-content">Fruits</span>
+                    <div class="node-actions">
+                        <button class="action-btn add-btn" title="Add Child">
+                            <span class="material-icons">add</span>
+                        </button>
+                        <button class="action-btn edit-btn" title="Rename">
+                            <span class="material-icons">edit</span>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Apple Node (child of Fruits) -->
+                <div class="tree-node" style="margin-left: 24px;">
+                    <button class="expand-btn">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                    <span class="node-content">Apple</span>
+                    <div class="node-actions">
+                        <button class="action-btn add-btn" title="Add Child">
+                            <span class="material-icons">add</span>
+                        </button>
+                        <button class="action-btn edit-btn" title="Rename">
+                            <span class="material-icons">edit</span>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Orange Node (child of Fruits) -->
+                <div class="tree-node" style="margin-left: 24px;">
+                    <span style="width: 24px;"></span>
+                    <span class="node-content">Orange</span>
+                    <div class="node-actions">
+                        <button class="action-btn add-btn" title="Add Child">
+                            <span class="material-icons">add</span>
+                        </button>
+                        <button class="action-btn edit-btn" title="Rename">
+                            <span class="material-icons">edit</span>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Banana Node (child of Fruits) -->
+                <div class="tree-node" style="margin-left: 24px;">
+                    <span style="width: 24px;"></span>
+                    <span class="node-content">Banana</span>
+                    <div class="node-actions">
+                        <button class="action-btn add-btn" title="Add Child">
+                            <span class="material-icons">add</span>
+                        </button>
+                        <button class="action-btn edit-btn" title="Rename">
+                            <span class="material-icons">edit</span>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Vegetables Node -->
+                <div class="tree-node">
+                    <button class="expand-btn">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                    <span class="node-content">Vegetables</span>
+                    <div class="node-actions">
+                        <button class="action-btn add-btn" title="Add Child">
+                            <span class="material-icons">add</span>
+                        </button>
+                        <button class="action-btn edit-btn" title="Rename">
+                            <span class="material-icons">edit</span>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>🛠️ Technical Implementation</h3>
+            <ul>
+                <li><strong>Framework:</strong> Angular with Material Design components</li>
+                <li><strong>Tree Control:</strong> Angular CDK FlatTreeControl for dynamic data</li>
+                <li><strong>Data Source:</strong> Custom implementation with BehaviorSubject</li>
+                <li><strong>State Management:</strong> Automatic expansion state preservation</li>
+                <li><strong>UI Components:</strong> Material buttons, dialogs, tooltips, and icons</li>
+                <li><strong>Notifications:</strong> Custom toast notifications for user feedback</li>
+                <li><strong>Validation:</strong> Duplicate name prevention and input validation</li>
+            </ul>
+        </div>
+        
+        <div class="demo-section">
+            <h3>📋 Usage Instructions</h3>
+            <ol>
+                <li><strong>Filter:</strong> Type in the search box to filter nodes</li>
+                <li><strong>Add Root:</strong> Click "Add Root Node" to create new top-level nodes</li>
+                <li><strong>Add Child:</strong> Hover over any node and click the green "+" icon</li>
+                <li><strong>Rename:</strong> Hover over any node and click the blue edit icon</li>
+                <li><strong>Delete:</strong> Hover over any node and click the red delete icon</li>
+                <li><strong>Expand/Collapse:</strong> Click the arrow icon next to parent nodes</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        // Simple demo functionality
+        document.querySelectorAll('.expand-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const icon = this.querySelector('.material-icons');
+                if (icon.textContent === 'expand_more') {
+                    icon.textContent = 'chevron_right';
+                } else {
+                    icon.textContent = 'expand_more';
+                }
+            });
+        });
+        
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const action = this.classList.contains('add-btn') ? 'Add Child' :
+                              this.classList.contains('edit-btn') ? 'Rename' : 'Delete';
+                alert(`${action} action clicked! In the actual Angular component, this would open a dialog.`);
+            });
+        });
+        
+        document.querySelector('.add-root-btn').addEventListener('click', function() {
+            alert('Add Root Node clicked! In the actual Angular component, this would open a dialog to create a new root node.');
+        });
+        
+        document.querySelector('.filter-input').addEventListener('input', function() {
+            if (this.value) {
+                alert(`Filtering by: "${this.value}". In the actual component, this would filter the tree while preserving hierarchy.`);
+            }
+        });
+    </script>
+</body>
+</html>
