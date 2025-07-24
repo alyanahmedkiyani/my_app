@@ -249,6 +249,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
   private _fullData: DynamicFlatNode[] = []; // Stores the complete, unfiltered data
   private _currentFilter: string = ''; // Store current filter to reapply after CRUD operations
+  private _isRestoringState = false; // Flag to prevent toggleNode during restoration
 
   get data(): DynamicFlatNode[] {
     return this.dataChange.value;
@@ -299,6 +300,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   private restoreExpansionState(expandedItems: Set<string>, currentVisibleItems: Set<string>) {
     if (expandedItems.size === 0) return;
 
+    // Set restoration flag to prevent toggleNode interference
+    this._isRestoringState = true;
+
+    // Temporarily disconnect the expansion model change listener to prevent toggleNode calls
+    const currentSubscription = this._treeControl.expansionModel.changed;
+    
     // Build the exact same tree structure that was visible before
     const restoredData: DynamicFlatNode[] = [];
 
@@ -321,11 +328,15 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // Start with root level nodes
     buildVisibleStructure(this._database.rootLevelNodes, 0);
 
+    // Clear expansion model completely to start fresh
+    this._treeControl.expansionModel.clear();
+
     // Update the data with the restored structure
     this.data = restoredData;
 
-    // Restore expansion state by checking which nodes have visible children
+    // Restore expansion state carefully
     setTimeout(() => {
+      // Directly update the expansion model selection without triggering events
       restoredData.forEach(node => {
         if (expandedItems.has(node.item) && node.expandable) {
           // Check if this node has immediate children visible in the restored data
@@ -334,12 +345,21 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
                                    restoredData[nodeIndex + 1].level === node.level + 1;
           
           if (hasVisibleChildren) {
-            // Manually set expansion without triggering events
+            // Directly add to selection without triggering change events
             this._treeControl.expansionModel.select(node);
           }
         }
       });
-    }, 0);
+
+      // Re-enable normal toggle behavior
+      this._isRestoringState = false;
+      
+      // Force update the tree control data nodes
+      this._treeControl.dataNodes = restoredData;
+      
+      // Trigger change detection
+      this.dataChange.next([...this.data]);
+    }, 100);
   }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
@@ -359,6 +379,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   /** Handle expand/collapse behaviors */
   handleTreeControl(change: SelectionChange<DynamicFlatNode>) {
+    // Don't handle changes during state restoration
+    if (this._isRestoringState) {
+      return;
+    }
+
     if (change.added) {
       change.added.forEach(node => this.toggleNode(node, true));
     }
@@ -374,6 +399,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 //    * Toggle the node, remove from display list
 
   toggleNode(node: DynamicFlatNode, expand: boolean) {
+    // Prevent toggleNode during state restoration to avoid duplicates
+    if (this._isRestoringState) {
+      return;
+    }
+
     const childrenItems = this._database.getChildren(node.item);
     const index = this.data.indexOf(node);
 
