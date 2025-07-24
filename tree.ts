@@ -267,7 +267,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   // Refresh data from database and reapply filter while preserving expansion state
   refreshData() {
-    // Store currently expanded node items
+    // Store currently expanded node items and current visible data
     const expandedItems = new Set<string>();
     this._treeControl.expansionModel.selected.forEach(node => {
       expandedItems.add(node.item);
@@ -277,6 +277,8 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     
     if (this._currentFilter) {
       this.filter(this._currentFilter);
+      // For filtered views, the filter method handles expansion
+      return;
     } else {
       this.data = this._database.initialData();
     }
@@ -284,28 +286,55 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // Restore expansion state after a short delay to ensure data is loaded
     setTimeout(() => {
       this.restoreExpansionState(expandedItems);
-    }, 50);
+    }, 100);
   }
 
-  // Helper method to restore expansion state
+  // Helper method to restore expansion state and rebuild the tree structure
   private restoreExpansionState(expandedItems: Set<string>) {
     if (expandedItems.size === 0) return;
 
-    // Find nodes that should be expanded and expand them
-    const nodesToExpand: DynamicFlatNode[] = [];
-    
-    this.data.forEach(node => {
-      if (expandedItems.has(node.item) && node.expandable) {
-        nodesToExpand.push(node);
+    // Build the complete expanded tree structure
+    const expandedData: DynamicFlatNode[] = [];
+    const processedNodes = new Set<string>();
+
+    // Helper function to add node and its children if expanded
+    const addNodeWithChildren = (item: string, level: number) => {
+      if (processedNodes.has(item)) return;
+      processedNodes.add(item);
+
+      const node = new DynamicFlatNode(item, level, this._database.isExpandable(item));
+      expandedData.push(node);
+
+      // If this node was expanded, add its children
+      if (expandedItems.has(item)) {
+        const children = this._database.getChildren(item);
+        if (children) {
+          children.forEach(child => {
+            addNodeWithChildren(child, level + 1);
+          });
+        }
       }
+    };
+
+    // Start with root level nodes
+    this._database.rootLevelNodes.forEach(rootItem => {
+      addNodeWithChildren(rootItem, 0);
     });
 
-    // Expand nodes in order (parents first, then children)
-    nodesToExpand.forEach(node => {
-      if (!this._treeControl.isExpanded(node)) {
-        this._treeControl.expand(node);
-      }
-    });
+    // Update the data with the expanded structure
+    this.data = expandedData;
+
+    // Now set the expansion state in the tree control
+    setTimeout(() => {
+      this.data.forEach(node => {
+        if (expandedItems.has(node.item) && node.expandable) {
+          if (!this._treeControl.isExpanded(node)) {
+            // Use the tree control's internal expansion without triggering toggleNode
+            this._treeControl.expansionModel.select(node);
+          }
+        }
+      });
+    }, 10);
   }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
