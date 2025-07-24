@@ -493,7 +493,8 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   createNode(parentItem: string | null, newNodeName: string): boolean {
     const success = this._database.createNode(parentItem, newNodeName);
     if (success) {
-      this.refreshData();
+      // Special handling for create operations to ensure new nodes are visible
+      this.refreshDataForCreate(parentItem, newNodeName);
     }
     return success;
   }
@@ -501,7 +502,8 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   updateNode(oldName: string, newName: string): boolean {
     const success = this._database.updateNode(oldName, newName);
     if (success) {
-      this.refreshData();
+      // Special handling for update operations to preserve renamed nodes
+      this.refreshDataForUpdate(oldName, newName);
     }
     return success;
   }
@@ -512,6 +514,81 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       this.refreshData();
     }
     return success;
+  }
+
+  // Special refresh method for create operations
+  private refreshDataForCreate(parentItem: string | null, newNodeName: string) {
+    // Store currently expanded node items and current visible data
+    const expandedItems = new Set<string>();
+    this._treeControl.expansionModel.selected.forEach(node => {
+      expandedItems.add(node.item);
+    });
+
+    // Store current visible data structure and add the new node to visible items
+    const currentVisibleItems = new Set<string>();
+    this.data.forEach(node => currentVisibleItems.add(node.item));
+    
+    // Add the new node to visible items if its parent is expanded
+    if (parentItem === null || expandedItems.has(parentItem)) {
+      currentVisibleItems.add(newNodeName);
+    }
+
+    this._fullData = this._database.getAllNodes();
+    
+    if (this._currentFilter) {
+      this.filter(this._currentFilter);
+      return;
+    }
+
+    // If no nodes were expanded, just show initial data
+    if (expandedItems.size === 0) {
+      this.data = this._database.initialData();
+      return;
+    }
+
+    // Restore expansion state using the preserved structure
+    this.restoreExpansionState(expandedItems, currentVisibleItems);
+  }
+
+  // Special refresh method for update operations
+  private refreshDataForUpdate(oldName: string, newName: string) {
+    // Store currently expanded node items and current visible data
+    const expandedItems = new Set<string>();
+    this._treeControl.expansionModel.selected.forEach(node => {
+      expandedItems.add(node.item);
+    });
+
+    // Update expanded items to use new name if the renamed node was expanded
+    if (expandedItems.has(oldName)) {
+      expandedItems.delete(oldName);
+      expandedItems.add(newName);
+    }
+
+    // Store current visible data structure and update with new name
+    const currentVisibleItems = new Set<string>();
+    this.data.forEach(node => currentVisibleItems.add(node.item));
+    
+    // Update visible items to use new name if the renamed node was visible
+    if (currentVisibleItems.has(oldName)) {
+      currentVisibleItems.delete(oldName);
+      currentVisibleItems.add(newName);
+    }
+
+    this._fullData = this._database.getAllNodes();
+    
+    if (this._currentFilter) {
+      this.filter(this._currentFilter);
+      return;
+    }
+
+    // If no nodes were expanded, just show initial data
+    if (expandedItems.size === 0) {
+      this.data = this._database.initialData();
+      return;
+    }
+
+    // Restore expansion state using the preserved structure
+    this.restoreExpansionState(expandedItems, currentVisibleItems);
   }
 }
 
@@ -599,22 +676,23 @@ export class Tree { // Renamed from TreeDynamicExample to Tree as per your impor
         // Check if parent was a leaf node before adding child
         const wasLeafNode = !this.database.isExpandable(parentNode.item);
         
+        // Store if parent was already expanded
+        const wasExpanded = this.treeControl.isExpanded(parentNode);
+        
         const success = this.dataSource.createNode(parentNode.item, result);
         if (success) {
           this.showMessage(`Child node "${result}" added to "${parentNode.item}" successfully!`);
           
-          // If the parent was a leaf node, we need to initialize it in dataMap
-          if (wasLeafNode) {
-            // The createNode method already added the child, so we just need to ensure
-            // the parent is now in the dataMap (this happens automatically in createNode)
-            // but we need to refresh the data to reflect the new expandable state
-          }
-          
-          // Find the updated parent node in the refreshed data and expand it
-          const updatedParentNode = this.dataSource.data.find(node => node.item === parentNode.item);
-          if (updatedParentNode && updatedParentNode.expandable) {
-            this.treeControl.expand(updatedParentNode);
-          }
+          // If parent was previously a leaf node or wasn't expanded, expand it to show the new child
+          setTimeout(() => {
+            const updatedParentNode = this.dataSource.data.find(node => node.item === parentNode.item);
+            if (updatedParentNode && updatedParentNode.expandable) {
+              if (wasLeafNode || !wasExpanded) {
+                // Expand the parent to show the new child
+                this.treeControl.expand(updatedParentNode);
+              }
+            }
+          }, 150);
         } else {
           this.showMessage(`Failed to add child node. Node "${result}" may already exist.`);
         }
