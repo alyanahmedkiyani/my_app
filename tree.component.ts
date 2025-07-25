@@ -511,6 +511,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       return;
     }
 
+    // Store currently expanded items before filtering
+    const expandedItems = new Set<string>();
+    this._treeControl.expansionModel.selected.forEach(node => {
+      expandedItems.add(node.item);
+    });
+
     const lowerCaseFilter = filterText.toLowerCase();
     const relevantItems = new Set<string>(); // Stores only the ITEM STRINGS that need to be shown
 
@@ -526,22 +532,26 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       }
     });
 
+    // Clear expansion model to avoid conflicts
+    this._treeControl.collapseAll();
+
     const newData: DynamicFlatNode[] = [];
     const nodesToExpand: DynamicFlatNode[] = []; // Collect nodes to expand
 
-    // 2. Build the new `data` array by filtering `_fullData`
-    // This ensures correct order and no duplicates of DynamicFlatNode instances
+    // 2. Build the new `data` array by creating fresh DynamicFlatNode instances
     this._fullData.forEach(node => {
         if (relevantItems.has(node.item)) {
-            newData.push(node);
-            // If the node is an ancestor or the filtered node itself, it should be expanded
-            // We need to be careful here: only expand if it's an expandable parent node in the filtered view
-            if (node.expandable) { // Only add if it's potentially an expandable node
-              const children = this._database.getChildren(node.item);
-              // Check if any of its immediate children are present in the filtered view (relevantItems)
-              // This indicates it should be expanded to reveal relevant children.
-              if (children && children.some(child => relevantItems.has(child))) {
-                nodesToExpand.push(node);
+            // Create a fresh node instance to avoid reference issues
+            const freshNode = new DynamicFlatNode(node.item, node.level, this._database.isExpandable(node.item));
+            newData.push(freshNode);
+            
+            // Check if this node should be expanded
+            if (freshNode.expandable) {
+              const children = this._database.getChildren(freshNode.item);
+              // If node was previously expanded OR it needs to be expanded to show relevant children
+              if (expandedItems.has(freshNode.item) || 
+                  (children && children.some(child => relevantItems.has(child)))) {
+                nodesToExpand.push(freshNode);
               }
             }
         }
@@ -550,24 +560,17 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // 3. Update the data source
     this.data = newData; // This calls the setter, which triggers dataChange.next()
 
-    // 4. Expand the necessary nodes
-    nodesToExpand.forEach(node => this._treeControl.expand(node));
+    // 4. Expand the necessary nodes after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      nodesToExpand.forEach(node => this._treeControl.expand(node));
+    }, 50);
   }
 
   // CRUD operations that maintain filter state
   createNode(parentItem: string | null, newNodeName: string): boolean {
     const success = this._database.createNode(parentItem, newNodeName);
     if (success) {
-      // Refresh fullData first
-      this._fullData = this._database.getAllNodes();
-      
-      if (this._currentFilter) {
-        // If there's an active filter, reapply it completely
-        this.filter(this._currentFilter);
-      } else {
-        // If no filter, use the normal create refresh logic
-        this.refreshDataForCreate(parentItem, newNodeName);
-      }
+      this.refreshDataAfterCRUD();
     }
     return success;
   }
@@ -575,16 +578,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   updateNode(oldName: string, newName: string): boolean {
     const success = this._database.updateNode(oldName, newName);
     if (success) {
-      // Refresh fullData first
-      this._fullData = this._database.getAllNodes();
-      
-      if (this._currentFilter) {
-        // If there's an active filter, reapply it completely
-        this.filter(this._currentFilter);
-      } else {
-        // If no filter, use the normal update refresh logic
-        this.refreshDataForUpdate(oldName, newName);
-      }
+      this.refreshDataAfterCRUD();
     }
     return success;
   }
@@ -592,18 +586,23 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   deleteNode(nodeName: string): boolean {
     const success = this._database.deleteNode(nodeName);
     if (success) {
-      // Refresh fullData first
-      this._fullData = this._database.getAllNodes();
-      
-      if (this._currentFilter) {
-        // If there's an active filter, reapply it completely
-        this.filter(this._currentFilter);
-      } else {
-        // If no filter, use the normal refresh logic
-        this.refreshData();
-      }
+      this.refreshDataAfterCRUD();
     }
     return success;
+  }
+
+  // Unified method to refresh data after CRUD operations
+  private refreshDataAfterCRUD() {
+    // Always refresh the full data first
+    this._fullData = this._database.getAllNodes();
+    
+    if (this._currentFilter) {
+      // If there's an active filter, reapply it
+      this.filter(this._currentFilter);
+    } else {
+      // If no filter, use normal refresh
+      this.refreshData();
+    }
   }
 
   // Special refresh method for create operations
@@ -681,16 +680,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
    moveNode(nodeToMove: string, newParent: string | null, newIndex?: number): boolean {
      const success = this._database.moveNode(nodeToMove, newParent, newIndex);
      if (success) {
-       // Refresh fullData first
-       this._fullData = this._database.getAllNodes();
-       
-       if (this._currentFilter) {
-         // If there's an active filter, reapply it completely
-         this.filter(this._currentFilter);
-       } else {
-         // If no filter, use the normal refresh logic
-         this.refreshData();
-       }
+       this.refreshDataAfterCRUD();
      }
      return success;
    }
