@@ -333,15 +333,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   // Refresh data from database and reapply filter while preserving expansion state
   refreshData() {
-    // Store currently expanded node items and current visible data
+    // Store currently expanded node items
     const expandedItems = new Set<string>();
     this._treeControl.expansionModel.selected.forEach(node => {
       expandedItems.add(node.item);
     });
-
-    // Store current visible data structure to preserve exact state
-    const currentVisibleItems = new Set<string>();
-    this.data.forEach(node => currentVisibleItems.add(node.item));
 
     this._fullData = this._database.getAllNodes();
     
@@ -351,81 +347,54 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       return;
     }
 
+    // For non-filtered view, use clean rebuild approach
+    this.rebuildTreeWithExpansion(expandedItems);
+  }
+
+  // Clean method to rebuild tree with expansion state
+  private rebuildTreeWithExpansion(expandedItems: Set<string>) {
+    // Clear expansion model to avoid conflicts
+    this._treeControl.collapseAll();
+
     // If no nodes were expanded, just show initial data
     if (expandedItems.size === 0) {
       this.data = this._database.initialData();
       return;
     }
 
-    // Restore expansion state using the preserved structure
-    this.restoreExpansionState(expandedItems, currentVisibleItems);
-  }
+    // Build the tree structure with expanded nodes
+    const newData: DynamicFlatNode[] = [];
+    const nodesToExpand: DynamicFlatNode[] = [];
 
-  // Helper method to restore expansion state and rebuild the tree structure
-  private restoreExpansionState(expandedItems: Set<string>, currentVisibleItems: Set<string>) {
-    if (expandedItems.size === 0) return;
-
-    // Set restoration flag to prevent toggleNode interference
-    this._isRestoringState = true;
-
-    // Temporarily disconnect the expansion model change listener to prevent toggleNode calls
-    const currentSubscription = this._treeControl.expansionModel.changed;
-    
-    // Build the exact same tree structure that was visible before
-    const restoredData: DynamicFlatNode[] = [];
-
-    // Recreate the exact structure by checking what was previously visible
-    const buildVisibleStructure = (items: string[], level: number) => {
+    const buildExpandedStructure = (items: string[], level: number) => {
       for (const item of items) {
-        if (currentVisibleItems.has(item)) {
-          const node = new DynamicFlatNode(item, level, this._database.isExpandable(item));
-          restoredData.push(node);
-          
-          // If this item has children and they were visible, add them recursively
+        const node = new DynamicFlatNode(item, level, this._database.isExpandable(item));
+        newData.push(node);
+        
+        // If this node was previously expanded, mark it for expansion and include its children
+        if (expandedItems.has(item) && node.expandable) {
+          nodesToExpand.push(node);
           const children = this._database.getChildren(item);
           if (children && children.length > 0) {
-            buildVisibleStructure(children, level + 1);
+            buildExpandedStructure(children, level + 1);
           }
         }
       }
     };
 
     // Start with root level nodes
-    buildVisibleStructure(this._database.rootLevelNodes, 0);
+    buildExpandedStructure(this._database.rootLevelNodes, 0);
 
-    // Clear expansion model completely to start fresh
-    this._treeControl.expansionModel.clear();
+    // Update the data
+    this.data = newData;
 
-    // Update the data with the restored structure
-    this.data = restoredData;
-
-    // Restore expansion state carefully
+    // Expand the necessary nodes after a short delay
     setTimeout(() => {
-      // Directly update the expansion model selection without triggering events
-      restoredData.forEach(node => {
-        if (expandedItems.has(node.item) && node.expandable) {
-          // Check if this node has immediate children visible in the restored data
-          const nodeIndex = restoredData.indexOf(node);
-          const hasVisibleChildren = nodeIndex + 1 < restoredData.length && 
-                                   restoredData[nodeIndex + 1].level === node.level + 1;
-          
-          if (hasVisibleChildren) {
-            // Directly add to selection without triggering change events
-            this._treeControl.expansionModel.select(node);
-          }
-        }
-      });
-
-      // Re-enable normal toggle behavior
-      this._isRestoringState = false;
-      
-      // Force update the tree control data nodes
-      this._treeControl.dataNodes = restoredData;
-      
-      // Trigger change detection
-      this.dataChange.next([...this.data]);
-    }, 100);
+      nodesToExpand.forEach(node => this._treeControl.expand(node));
+    }, 50);
   }
+
+
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
     this._treeControl.expansionModel.changed.subscribe(change => {
@@ -607,19 +576,16 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   // Special refresh method for create operations
   private refreshDataForCreate(parentItem: string | null, newNodeName: string) {
-    // Store currently expanded node items and current visible data
+    // Store currently expanded node items
     const expandedItems = new Set<string>();
     this._treeControl.expansionModel.selected.forEach(node => {
       expandedItems.add(node.item);
     });
 
-    // Store current visible data structure and add the new node to visible items
-    const currentVisibleItems = new Set<string>();
-    this.data.forEach(node => currentVisibleItems.add(node.item));
-    
-    // Add the new node to visible items if its parent is expanded
-    if (parentItem === null || expandedItems.has(parentItem)) {
-      currentVisibleItems.add(newNodeName);
+    // If parent exists and was previously expanded, ensure it remains expanded
+    // If parent is null (root level), no special handling needed
+    if (parentItem !== null && this._database.isExpandable(parentItem)) {
+      expandedItems.add(parentItem); // Ensure parent is expanded to show new child
     }
 
     if (this._currentFilter) {
@@ -627,19 +593,13 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       return;
     }
 
-    // If no nodes were expanded, just show initial data
-    if (expandedItems.size === 0) {
-      this.data = this._database.initialData();
-      return;
-    }
-
-    // Restore expansion state using the preserved structure
-    this.restoreExpansionState(expandedItems, currentVisibleItems);
+    // Use clean rebuild approach
+    this.rebuildTreeWithExpansion(expandedItems);
   }
 
   // Special refresh method for update operations
   private refreshDataForUpdate(oldName: string, newName: string) {
-    // Store currently expanded node items and current visible data
+    // Store currently expanded node items
     const expandedItems = new Set<string>();
     this._treeControl.expansionModel.selected.forEach(node => {
       expandedItems.add(node.item);
@@ -651,29 +611,13 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       expandedItems.add(newName);
     }
 
-    // Store current visible data structure and update with new name
-    const currentVisibleItems = new Set<string>();
-    this.data.forEach(node => currentVisibleItems.add(node.item));
-    
-    // Update visible items to use new name if the renamed node was visible
-    if (currentVisibleItems.has(oldName)) {
-      currentVisibleItems.delete(oldName);
-      currentVisibleItems.add(newName);
-    }
-
     if (this._currentFilter) {
       this.filter(this._currentFilter);
       return;
     }
 
-    // If no nodes were expanded, just show initial data
-    if (expandedItems.size === 0) {
-      this.data = this._database.initialData();
-      return;
-    }
-
-         // Restore expansion state using the preserved structure
-     this.restoreExpansionState(expandedItems, currentVisibleItems);
+    // Use clean rebuild approach
+    this.rebuildTreeWithExpansion(expandedItems);
    }
 
    // Move node operation for drag and drop
