@@ -487,24 +487,34 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     });
 
     const lowerCaseFilter = filterText.toLowerCase();
-    const relevantItems = new Set<string>(); // Stores only the ITEM STRINGS that need to be shown
+    const relevantItems = new Set<string>(); // Stores all items that need to be shown
+    const nodesToExpand = new Set<string>(); // Stores all items that need to be expanded
 
-    // 1. Identify all item strings that are relevant based on the filter
+    // 1. Find all matching nodes and build the complete tree structure needed
     this._fullData.forEach(node => {
       if (node.item.toLowerCase().includes(lowerCaseFilter)) {
         // Add the matching node itself
         relevantItems.add(node.item);
         
-        // Include all ancestors (parents, grandparents, etc.) to show the path
-        const ancestors = this._database.getAncestorPath(node.item);
+        // Get complete path from root to this node
+        const fullPath = this.getCompletePathToNode(node.item);
         
-        // Remove the target node itself from ancestors since we already added it
-        const ancestorsOnly = ancestors.filter(anc => anc !== node.item);
-        ancestorsOnly.forEach(anc => relevantItems.add(anc));
+        // Add all nodes in the path to relevant items
+        fullPath.forEach(pathItem => relevantItems.add(pathItem));
+        
+        // Mark all parent nodes in the path for expansion (except the leaf node)
+        for (let i = 0; i < fullPath.length - 1; i++) {
+          nodesToExpand.add(fullPath[i]);
+        }
 
-        // Include all descendants (children, grandchildren, etc.)
+        // Include all descendants of the matching node
         const descendants = this._database.getDescendants(node.item);
         descendants.forEach(desc => relevantItems.add(desc));
+        
+        // If the matching node has children, mark it for expansion too
+        if (this._database.isExpandable(node.item)) {
+          nodesToExpand.add(node.item);
+        }
       }
     });
 
@@ -512,9 +522,9 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     this._treeControl.collapseAll();
 
     const newData: DynamicFlatNode[] = [];
-    const nodesToExpand: DynamicFlatNode[] = []; // Collect nodes to expand
+    const nodesToExpandArray: DynamicFlatNode[] = [];
 
-    // 2. Build the new `data` array by creating fresh DynamicFlatNode instances
+    // 2. Build the new data array by creating fresh DynamicFlatNode instances
     this._fullData.forEach(node => {
         if (relevantItems.has(node.item)) {
             // Create a fresh node instance to avoid reference issues
@@ -522,31 +532,18 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
             newData.push(freshNode);
             
             // Check if this node should be expanded
-            if (freshNode.expandable) {
-              const children = this._database.getChildren(freshNode.item);
-              // Expand if:
-              // 1. Node was previously expanded, OR
-              // 2. Node needs to be expanded to show relevant children, OR
-              // 3. Node itself matches the filter (so user can see its children), OR
-              // 4. Node is an ancestor of a matching node (part of the path to show matches)
-              const nodeMatchesFilter = freshNode.item.toLowerCase().includes(lowerCaseFilter);
-              const hasRelevantChildren = children && children.some(child => relevantItems.has(child));
-              
-              if (expandedItems.has(freshNode.item) || 
-                  hasRelevantChildren ||
-                  nodeMatchesFilter) {
-                nodesToExpand.push(freshNode);
-              }
+            if (freshNode.expandable && (nodesToExpand.has(freshNode.item) || expandedItems.has(freshNode.item))) {
+              nodesToExpandArray.push(freshNode);
             }
         }
     });
 
     // 3. Update the data source
-    this.data = newData; // This calls the setter, which triggers dataChange.next()
+    this.data = newData;
 
-    // 4. Expand the necessary nodes after a short delay to ensure DOM is ready
+    // 4. Expand the necessary nodes after a short delay
     setTimeout(() => {
-      nodesToExpand.forEach(node => this._treeControl.expand(node));
+      nodesToExpandArray.forEach(node => this._treeControl.expand(node));
     }, 50);
   }
 
@@ -587,6 +584,35 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       // If no filter, use normal refresh
       this.refreshData();
     }
+  }
+
+  // Helper method to get complete path from root to a specific node
+  private getCompletePathToNode(targetNode: string): string[] {
+    const path: string[] = [];
+    
+    // Helper function to recursively find the path
+    const findPath = (currentItems: string[], currentPath: string[]): boolean => {
+      for (const item of currentItems) {
+        const newPath = [...currentPath, item];
+        
+        if (item === targetNode) {
+          path.push(...newPath);
+          return true;
+        }
+        
+        const children = this._database.getChildren(item);
+        if (children && children.length > 0) {
+          if (findPath(children, newPath)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    // Start search from root level nodes
+    findPath(this._database.rootLevelNodes, []);
+    return path;
   }
 
   // Special refresh method for create operations
