@@ -517,9 +517,14 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
             // Check if this node should be expanded
             if (freshNode.expandable) {
               const children = this._database.getChildren(freshNode.item);
-              // If node was previously expanded OR it needs to be expanded to show relevant children
+              // Expand if:
+              // 1. Node was previously expanded, OR
+              // 2. Node needs to be expanded to show relevant children, OR
+              // 3. Node itself matches the filter (so user can see its children)
+              const nodeMatchesFilter = freshNode.item.toLowerCase().includes(lowerCaseFilter);
               if (expandedItems.has(freshNode.item) || 
-                  (children && children.some(child => relevantItems.has(child)))) {
+                  (children && children.some(child => relevantItems.has(child))) ||
+                  nodeMatchesFilter) {
                 nodesToExpand.push(freshNode);
               }
             }
