@@ -394,8 +394,6 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }, 50);
   }
 
-
-
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
     this._treeControl.expansionModel.changed.subscribe(change => {
       if (
@@ -547,6 +545,35 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }, 50);
   }
 
+  // Helper method to get complete path from root to a specific node
+  private getCompletePathToNode(targetNode: string): string[] {
+    const path: string[] = [];
+    
+    // Helper function to recursively find the path
+    const findPath = (currentItems: string[], currentPath: string[]): boolean => {
+      for (const item of currentItems) {
+        const newPath = [...currentPath, item];
+        
+        if (item === targetNode) {
+          path.push(...newPath);
+          return true;
+        }
+        
+        const children = this._database.getChildren(item);
+        if (children && children.length > 0) {
+          if (findPath(children, newPath)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    // Start search from root level nodes
+    findPath(this._database.rootLevelNodes, []);
+    return path;
+  }
+
   // CRUD operations that maintain filter state
   createNode(parentItem: string | null, newNodeName: string): boolean {
     const success = this._database.createNode(parentItem, newNodeName);
@@ -586,92 +613,17 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }
   }
 
-  // Helper method to get complete path from root to a specific node
-  private getCompletePathToNode(targetNode: string): string[] {
-    const path: string[] = [];
-    
-    // Helper function to recursively find the path
-    const findPath = (currentItems: string[], currentPath: string[]): boolean => {
-      for (const item of currentItems) {
-        const newPath = [...currentPath, item];
-        
-        if (item === targetNode) {
-          path.push(...newPath);
-          return true;
-        }
-        
-        const children = this._database.getChildren(item);
-        if (children && children.length > 0) {
-          if (findPath(children, newPath)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    };
-    
-    // Start search from root level nodes
-    findPath(this._database.rootLevelNodes, []);
-    return path;
+  // Move node operation for drag and drop
+  moveNode(nodeToMove: string, newParent: string | null, newIndex?: number): boolean {
+    const success = this._database.moveNode(nodeToMove, newParent, newIndex);
+    if (success) {
+      this.refreshDataAfterCRUD();
+    }
+    return success;
   }
-
-  // Special refresh method for create operations
-  private refreshDataForCreate(parentItem: string | null, newNodeName: string) {
-    // Store currently expanded node items
-    const expandedItems = new Set<string>();
-    this._treeControl.expansionModel.selected.forEach(node => {
-      expandedItems.add(node.item);
-    });
-
-    // If parent exists and was previously expanded, ensure it remains expanded
-    // If parent is null (root level), no special handling needed
-    if (parentItem !== null && this._database.isExpandable(parentItem)) {
-      expandedItems.add(parentItem); // Ensure parent is expanded to show new child
-    }
-
-    if (this._currentFilter) {
-      this.filter(this._currentFilter);
-      return;
-    }
-
-    // Use clean rebuild approach
-    this.rebuildTreeWithExpansion(expandedItems);
-  }
-
-  // Special refresh method for update operations
-  private refreshDataForUpdate(oldName: string, newName: string) {
-    // Store currently expanded node items
-    const expandedItems = new Set<string>();
-    this._treeControl.expansionModel.selected.forEach(node => {
-      expandedItems.add(node.item);
-    });
-
-    // Update expanded items to use new name if the renamed node was expanded
-    if (expandedItems.has(oldName)) {
-      expandedItems.delete(oldName);
-      expandedItems.add(newName);
-    }
-
-    if (this._currentFilter) {
-      this.filter(this._currentFilter);
-      return;
-    }
-
-    // Use clean rebuild approach
-    this.rebuildTreeWithExpansion(expandedItems);
-   }
-
-   // Move node operation for drag and drop
-   moveNode(nodeToMove: string, newParent: string | null, newIndex?: number): boolean {
-     const success = this._database.moveNode(nodeToMove, newParent, newIndex);
-     if (success) {
-       this.refreshDataAfterCRUD();
-     }
-     return success;
-   }
- }
+}
  
- // Dialog Components
+// Dialog Components
 @Component({
   selector: 'node-dialog',
   template: `
