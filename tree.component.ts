@@ -492,10 +492,17 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     // 1. Identify all item strings that are relevant based on the filter
     this._fullData.forEach(node => {
       if (node.item.toLowerCase().includes(lowerCaseFilter)) {
-        // If the node itself matches, include its ancestors and all its descendants
+        // Add the matching node itself
+        relevantItems.add(node.item);
+        
+        // Include all ancestors (parents, grandparents, etc.) to show the path
         const ancestors = this._database.getAncestorPath(node.item);
-        ancestors.forEach(anc => relevantItems.add(anc));
+        
+        // Remove the target node itself from ancestors since we already added it
+        const ancestorsOnly = ancestors.filter(anc => anc !== node.item);
+        ancestorsOnly.forEach(anc => relevantItems.add(anc));
 
+        // Include all descendants (children, grandchildren, etc.)
         const descendants = this._database.getDescendants(node.item);
         descendants.forEach(desc => relevantItems.add(desc));
       }
@@ -520,10 +527,13 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
               // Expand if:
               // 1. Node was previously expanded, OR
               // 2. Node needs to be expanded to show relevant children, OR
-              // 3. Node itself matches the filter (so user can see its children)
+              // 3. Node itself matches the filter (so user can see its children), OR
+              // 4. Node is an ancestor of a matching node (part of the path to show matches)
               const nodeMatchesFilter = freshNode.item.toLowerCase().includes(lowerCaseFilter);
+              const hasRelevantChildren = children && children.some(child => relevantItems.has(child));
+              
               if (expandedItems.has(freshNode.item) || 
-                  (children && children.some(child => relevantItems.has(child))) ||
+                  hasRelevantChildren ||
                   nodeMatchesFilter) {
                 nodesToExpand.push(freshNode);
               }
